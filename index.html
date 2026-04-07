@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #090b10;
+      --surface:   #0f1219;
+      --panel:     #141820;
+      --border:    #1e2535;
+      --text:      #c8d0e0;
+      --muted:     #4a5568;
+      --accent:    #3d8ef8;
+      --user-bg:   #141e30;
+      --agent-bg:  #0d1a14;
+      --error:     #ff4757;
+      --radius:    8px;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-ui:   'Syne', sans-serif;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Name Gate ── */
+    #nameGate {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    .gate-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 40px;
+      width: 340px;
+      text-align: center;
+    }
+    .gate-box h1 {
+      font-family: var(--font-ui);
+      font-size: 28px; font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .gate-box p { color: var(--muted); margin-bottom: 28px; font-size: 12px; }
+    .gate-box input {
+      width: 100%; padding: 10px 14px;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-family: var(--font-ui); font-size: 15px;
+      outline: none; margin-bottom: 10px;
+      text-align: center;
+    }
+    .gate-box input:focus { border-color: var(--accent); }
+    .color-row {
+      display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;
+    }
+    .color-swatch {
+      width: 24px; height: 24px; border-radius: 50%;
+      cursor: pointer; border: 2px solid transparent;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .color-swatch.selected, .color-swatch:hover {
+      border-color: #fff; transform: scale(1.2);
+    }
+    .btn {
+      display: inline-block; padding: 10px 28px;
+      background: var(--accent); color: #fff;
+      font-family: var(--font-ui); font-weight: 600; font-size: 14px;
+      border: none; border-radius: var(--radius);
+      cursor: pointer; transition: opacity 0.15s;
+      width: 100%;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn.secondary {
+      background: var(--panel); border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn.danger { background: var(--error); }
+    .btn.sm { padding: 6px 14px; font-size: 12px; width: auto; }
+
+    /* ── Layout ── */
+    #app { display: flex; height: 100vh; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 220px; min-width: 220px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-header h2 {
+      font-family: var(--font-ui);
+      font-size: 16px; font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+    .sidebar-header .sub { color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .section-label {
+      padding: 12px 16px 6px;
+      font-size: 10px; font-weight: 600;
+      color: var(--muted); letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .room-item {
+      padding: 8px 16px;
+      cursor: pointer; border-radius: 0;
+      display: flex; align-items: center; gap: 8px;
+      transition: background 0.1s; font-size: 13px;
+    }
+    .room-item:hover { background: var(--panel); }
+    .room-item.active { background: var(--panel); color: #fff; }
+    .room-item .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted); flex-shrink: 0;
+    }
+    .room-item.active .dot { background: var(--accent); }
+    .sidebar-add {
+      padding: 6px 16px;
+      color: var(--accent); font-size: 12px;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+    }
+    .sidebar-add:hover { text-decoration: underline; }
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+    }
+    .user-badge {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .user-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .user-name { font-size: 13px; font-weight: 600; }
+
+    /* ── Main ── */
+    #main {
+      flex: 1; display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    #chatHeader {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface);
+    }
+    #chatHeader .room-name {
+      font-family: var(--font-ui); font-size: 15px; font-weight: 700;
+    }
+    #chatHeader .status {
+      font-size: 11px; color: var(--muted);
+    }
+    #chatHeader .status.ok::before {
+      content: '●'; color: #00ff88; margin-right: 5px; font-size: 9px;
+    }
+    #chatHeader .status.err::before {
+      content: '●'; color: var(--error); margin-right: 5px; font-size: 9px;
+    }
+
+    #messages {
+      flex: 1; overflow-y: auto;
+      padding: 16px 20px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    #messages::-webkit-scrollbar { width: 4px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .msg {
+      display: flex; gap: 10px;
+      padding: 8px 12px; border-radius: var(--radius);
+      line-height: 1.6; max-width: 85%;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .msg.user {
+      background: var(--user-bg);
+      align-self: flex-end; flex-direction: row-reverse;
+    }
+    .msg.assistant { background: var(--agent-bg); align-self: flex-start; }
+    .msg-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
+      font-family: var(--font-ui);
+    }
+    .msg-body { flex: 1; min-width: 0; }
+    .msg-sender {
+      font-size: 11px; font-weight: 600; margin-bottom: 3px;
+      font-family: var(--font-ui);
+    }
+    .msg-content {
+      white-space: pre-wrap; word-break: break-word;
+      color: var(--text);
+    }
+    .msg-content code {
+      background: rgba(255,255,255,0.06);
+      padding: 1px 5px; border-radius: 3px;
+      font-family: var(--font-mono);
+    }
+    .msg-time {
+      font-size: 10px; color: var(--muted);
+      margin-top: 3px;
+    }
+
+    /* Thinking indicator */
+    .thinking-indicator {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px;
+      animation: fadeIn 0.2s ease;
+      font-size: 12px; color: var(--muted);
+    }
+    .thinking-dots span {
+      display: inline-block; width: 5px; height: 5px;
+      border-radius: 50%; background: currentColor;
+      animation: bounce 1.2s infinite;
+    }
+    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Input area */
+    #inputArea {
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      display: flex; gap: 10px; align-items: flex-end;
+    }
+    #msgInput {
+      flex: 1; background: var(--panel);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text); font-family: var(--font-mono); font-size: 13px;
+      padding: 10px 14px; resize: none; outline: none;
+      max-height: 120px; line-height: 1.5;
+    }
+    #msgInput:focus { border-color: var(--accent); }
+    #sendBtn {
+      padding: 10px 20px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: var(--radius);
+      font-family: var(--font-ui); font-weight: 600; font-size: 13px;
+      cursor: pointer; transition: opacity 0.15s; flex-shrink: 0;
+    }
+    #sendBtn:hover { opacity: 0.85; }
+    #sendBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Agent Panel (right side) ── */
+    #agentPanel {
+      width: 280px; min-width: 280px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .panel-header h3 {
+      font-family: var(--font-ui); font-size: 13px; font-weight: 700;
+    }
+    #agentList {
+      flex: 1; overflow-y: auto; padding: 8px;
+    }
+    .agent-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px; margin-bottom: 6px;
+    }
+    .agent-card-top {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+    }
+    .agent-color-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .agent-card-name {
+      font-family: var(--font-ui); font-weight: 700; font-size: 13px; flex: 1;
+    }
+    .agent-card-model {
+      font-size: 10px; color: var(--muted); margin-bottom: 6px;
+    }
+    .agent-card-prompt {
+      font-size: 11px; color: var(--muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 8px;
+    }
+    .agent-card-actions {
+      display: flex; gap: 6px; align-items: center;
+    }
+    .toggle-btn {
+      font-size: 11px; padding: 3px 10px;
+      border-radius: 4px; border: none; cursor: pointer;
+      font-family: var(--font-mono); font-weight: 600;
+      transition: opacity 0.15s;
+    }
+    .toggle-btn.on  { background: rgba(0,255,136,0.15); color: #00ff88; }
+    .toggle-btn.off { background: rgba(255,71,87,0.15);  color: var(--error); }
+    .edit-btn {
+      font-size: 11px; color: var(--muted); cursor: pointer;
+      background: none; border: none; padding: 3px 6px;
+    }
+    .edit-btn:hover { color: var(--text); }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200; padding: 20px;
+    }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px; width: 100%; max-width: 440px;
+    }
+    .modal h3 {
+      font-family: var(--font-ui); font-size: 16px; font-weight: 700;
+      margin-bottom: 20px;
+    }
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block; font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      margin-bottom: 5px; font-family: var(--font-ui);
+    }
+    .field input, .field textarea, .field select {
+      width: 100%; padding: 9px 12px;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-family: var(--font-mono); font-size: 13px;
+      outline: none;
+    }
+    .field input:focus, .field textarea:focus, .field select:focus {
+      border-color: var(--accent);
+    }
+    .field textarea { resize: vertical; min-height: 90px; }
+    .field select option { background: var(--panel); }
+    .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+    .color-picker-row {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Name gate -->
+<div id="nameGate">
+  <div class="gate-box">
+    <h1>Agent Hub</h1>
+    <p>Multi-agent AI · Shared rooms · Real-time</p>
+    <input id="nameInput" type="text" placeholder="Your name..." maxlength="24" />
+    <div class="color-row" id="userColorPicker"></div>
+    <button class="btn" onclick="enterHub()">Enter Hub</button>
+  </div>
+</div>
+
+<!-- Main app -->
+<div id="app" style="display:none;">
+
+  <!-- Sidebar: rooms -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <h2>⬡ Agent Hub</h2>
+      <div class="sub" id="sidebarUserLabel">—</div>
+    </div>
+    <div class="section-label">Rooms</div>
+    <div id="roomList"></div>
+    <div class="sidebar-add" onclick="showNewRoomModal()">+ New Room</div>
+    <div class="sidebar-footer">
+      <div class="user-badge">
+        <div class="user-dot" id="userDot"></div>
+        <div class="user-name" id="userLabel">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main chat -->
+  <div id="main">
+    <div id="chatHeader">
+      <div class="room-name" id="roomLabel">—</div>
+      <div class="status" id="connStatus">connecting...</div>
+    </div>
+    <div id="messages"></div>
+    <div id="inputArea">
+      <textarea id="msgInput" rows="1" placeholder="Message..."></textarea>
+      <button id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <!-- Agent panel -->
+  <div id="agentPanel">
+    <div class="panel-header">
+      <h3>Agents</h3>
+      <button class="btn sm secondary" onclick="showAgentModal(null)">+ New</button>
+    </div>
+    <div id="agentList"></div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let userName = '';
+let userColor = '#3d8ef8';
+let currentRoomId = null;
+let eventSource = null;
+let thinkingAgents = new Set();
+
+const USER_COLORS = ['#3d8ef8','#00ff88','#ff6b6b','#ffd93d','#c77dff','#ff9f43','#48dbfb','#ff6eb4'];
+const AGENT_COLORS = ['#00ff88','#3d8ef8','#ff6b6b','#ffd93d','#c77dff','#ff9f43','#48dbfb','#ff6eb4'];
+const GROQ_MODELS = [
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'mixtral-8x7b-32768',
+  'gemma2-9b-it',
+];
+
+// ── Name gate ─────────────────────────────────────────────────────────────
+function buildColorPicker(containerId, colors, defaultColor, onSelect) {
+  const el = document.getElementById(containerId);
+  colors.forEach(c => {
+    const s = document.createElement('div');
+    s.className = 'color-swatch' + (c === defaultColor ? ' selected' : '');
+    s.style.background = c;
+    s.onclick = () => {
+      el.querySelectorAll('.color-swatch').forEach(x => x.classList.remove('selected'));
+      s.classList.add('selected');
+      onSelect(c);
+    };
+    el.appendChild(s);
+  });
+}
+
+buildColorPicker('userColorPicker', USER_COLORS, userColor, c => { userColor = c; });
+
+document.getElementById('nameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') enterHub();
+});
+
+function enterHub() {
+  const val = document.getElementById('nameInput').value.trim();
+  if (!val) return;
+  userName = val;
+  localStorage.setItem('agentHubName', userName);
+  localStorage.setItem('agentHubColor', userColor);
+  document.getElementById('nameGate').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('userLabel').textContent = userName;
+  document.getElementById('sidebarUserLabel').textContent = userName;
+  document.getElementById('userDot').style.background = userColor;
+  loadRooms();
+  loadAgents();
+}
+
+// Pre-fill from localStorage
+window.addEventListener('DOMContentLoaded', () => {
+  const savedName = localStorage.getItem('agentHubName');
+  const savedColor = localStorage.getItem('agentHubColor');
+  if (savedName) document.getElementById('nameInput').value = savedName;
+  if (savedColor) {
+    userColor = savedColor;
+    document.querySelectorAll('#userColorPicker .color-swatch').forEach(s => {
+      s.classList.toggle('selected', s.style.background === savedColor ||
+        savedColor === rgbToHex(s.style.background));
+    });
+  }
+});
+
+function rgbToHex(rgb) {
+  if (rgb.startsWith('#')) return rgb;
+  const m = rgb.match(/\d+/g);
+  if (!m) return rgb;
+  return '#' + m.slice(0,3).map(n => parseInt(n).toString(16).padStart(2,'0')).join('');
+}
+
+// ── Rooms ─────────────────────────────────────────────────────────────────
+async function loadRooms() {
+  const res = await fetch('/api/rooms');
+  const rooms = await res.json();
+  const list = document.getElementById('roomList');
+  list.innerHTML = '';
+  rooms.forEach(r => {
+    const el = document.createElement('div');
+    el.className = 'room-item' + (r.id === currentRoomId ? ' active' : '');
+    el.innerHTML = `<div class="dot"></div>${escHtml(r.name)}`;
+    el.onclick = () => joinRoom(r.id, r.name);
+    list.appendChild(el);
+  });
+  if (!currentRoomId && rooms.length > 0) joinRoom(rooms[0].id, rooms[0].name);
+}
+
+function joinRoom(id, name) {
+  currentRoomId = id;
+  document.getElementById('roomLabel').textContent = '# ' + name;
+  document.getElementById('messages').innerHTML = '';
+  thinkingAgents.clear();
+  document.querySelectorAll('.room-item').forEach(el => {
+    el.classList.toggle('active', el.textContent.trim() === name);
+  });
+  loadMessages(id);
+  connectSSE(id);
+}
+
+async function loadMessages(roomId) {
+  const res = await fetch(`/api/rooms/${roomId}/messages`);
+  const msgs = await res.json();
+  msgs.forEach(m => renderMessage(m));
+  scrollBottom();
+}
+
+function showNewRoomModal() {
+  const name = prompt('Room name:');
+  if (!name?.trim()) return;
+  fetch('/api/rooms', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name.trim() }),
+  }).then(() => loadRooms());
+}
+
+// ── SSE ───────────────────────────────────────────────────────────────────
+function connectSSE(roomId) {
+  if (eventSource) eventSource.close();
+  const status = document.getElementById('connStatus');
+
+  eventSource = new EventSource(`/api/rooms/${roomId}/stream`);
+
+  eventSource.addEventListener('connected', () => {
+    status.className = 'status ok';
+    status.textContent = 'connected';
+  });
+
+  eventSource.addEventListener('message', e => {
+    const msg = JSON.parse(e.data);
+    // Remove thinking indicator for this agent if present
+    if (msg.agent_id) {
+      const ti = document.getElementById('thinking-' + msg.agent_id);
+      if (ti) ti.remove();
+      thinkingAgents.delete(msg.agent_id);
+    }
+    renderMessage(msg);
+    scrollBottom();
+  });
+
+  eventSource.addEventListener('thinking', e => {
+    const { agentId, agentName, color } = JSON.parse(e.data);
+    if (thinkingAgents.has(agentId)) return;
+    thinkingAgents.add(agentId);
+    const el = document.createElement('div');
+    el.id = 'thinking-' + agentId;
+    el.className = 'thinking-indicator';
+    el.style.color = color;
+    el.innerHTML = `
+      <div class="msg-avatar" style="background:${color}22;color:${color};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-family:var(--font-ui);font-weight:700;">
+        ${agentName[0]}
+      </div>
+      <span style="font-family:var(--font-ui);font-weight:600;">${escHtml(agentName)}</span>
+      <div class="thinking-dots" style="color:${color}">
+        <span></span><span></span><span></span>
+      </div>`;
+    document.getElementById('messages').appendChild(el);
+    scrollBottom();
+  });
+
+  eventSource.addEventListener('agent_error', e => {
+    const { agentName, error } = JSON.parse(e.data);
+    const el = document.createElement('div');
+    el.className = 'msg';
+    el.style.color = 'var(--error)';
+    el.style.fontSize = '11px';
+    el.textContent = `⚠ ${agentName}: ${error}`;
+    document.getElementById('messages').appendChild(el);
+    scrollBottom();
+  });
+
+  eventSource.onerror = () => {
+    status.className = 'status err';
+    status.textContent = 'reconnecting...';
+  };
+}
+
+// ── Messages ──────────────────────────────────────────────────────────────
+function renderMessage(msg) {
+  const el = document.createElement('div');
+  el.className = 'msg ' + msg.role;
+  el.dataset.id = msg.id;
+
+  const isUser = msg.role === 'user';
+  const color = msg.color || (isUser ? '#3d8ef8' : '#00ff88');
+  const senderName = isUser ? (msg.user_name || 'User') : (msg.agent_name || 'Agent');
+  const initial = senderName[0].toUpperCase();
+
+  const time = new Date((msg.created_at || Date.now()/1000) * 1000)
+    .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  el.innerHTML = `
+    <div class="msg-avatar" style="background:${color}22;color:${color};">${initial}</div>
+    <div class="msg-body">
+      <div class="msg-sender" style="color:${color};">${escHtml(senderName)}</div>
+      <div class="msg-content">${formatContent(msg.content)}</div>
+      <div class="msg-time">${time}</div>
+    </div>`;
+
+  document.getElementById('messages').appendChild(el);
+}
+
+function formatContent(text) {
+  // Basic code block and inline code formatting
+  return escHtml(text)
+    .replace(/```[\s\S]*?```/g, m => `<code>${m.slice(3,-3).trim()}</code>`)
+    .replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function scrollBottom() {
+  const el = document.getElementById('messages');
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── Send message ──────────────────────────────────────────────────────────
+async function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const content = input.value.trim();
+  if (!content || !currentRoomId) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('sendBtn').disabled = true;
+
+  try {
+    await fetch(`/api/rooms/${currentRoomId}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, userName, userColor }),
+    });
+  } catch (err) {
+    console.error('Send error:', err);
+  } finally {
+    document.getElementById('sendBtn').disabled = false;
+    input.focus();
+  }
+}
+
+// Auto-resize textarea
+document.getElementById('msgInput').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+document.getElementById('msgInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+// ── Agents ────────────────────────────────────────────────────────────────
+let agents = [];
+
+async function loadAgents() {
+  const res = await fetch('/api/agents');
+  agents = await res.json();
+  renderAgents();
+}
+
+function renderAgents() {
+  const list = document.getElementById('agentList');
+  list.innerHTML = '';
+  if (agents.length === 0) {
+    list.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:12px;">No agents yet. Add one!</div>';
+    return;
+  }
+  agents.forEach(a => {
+    const card = document.createElement('div');
+    card.className = 'agent-card';
+    const isOn = Number(a.active) === 1;
+    card.innerHTML = `
+      <div class="agent-card-top">
+        <div class="agent-color-dot" style="background:${a.color}"></div>
+        <div class="agent-card-name">${escHtml(a.name)}</div>
+      </div>
+      <div class="agent-card-model">${a.model}</div>
+      <div class="agent-card-prompt">${escHtml(a.system_prompt)}</div>
+      <div class="agent-card-actions">
+        <button class="toggle-btn ${isOn ? 'on' : 'off'}" onclick="toggleAgent('${a.id}', ${isOn})">
+          ${isOn ? 'ON' : 'OFF'}
+        </button>
+        <button class="edit-btn" onclick="showAgentModal('${a.id}')">Edit</button>
+        <button class="edit-btn" style="color:var(--error)" onclick="deleteAgent('${a.id}')">✕</button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+async function toggleAgent(id, currentlyOn) {
+  const agent = agents.find(a => a.id === id);
+  if (!agent) return;
+  await fetch(`/api/agents/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...agent, active: currentlyOn ? 0 : 1 }),
+  });
+  await loadAgents();
+}
+
+async function deleteAgent(id) {
+  if (!confirm('Delete this agent?')) return;
+  await fetch(`/api/agents/${id}`, { method: 'DELETE' });
+  await loadAgents();
+}
+
+// ── Agent Modal ───────────────────────────────────────────────────────────
+let selectedAgentColor = AGENT_COLORS[0];
+
+function showAgentModal(agentId) {
+  const agent = agentId ? agents.find(a => a.id === agentId) : null;
+  selectedAgentColor = agent?.color || AGENT_COLORS[0];
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'agentModal';
+
+  const modelOptions = GROQ_MODELS.map(m =>
+    `<option value="${m}" ${agent?.model === m ? 'selected' : ''}>${m}</option>`
+  ).join('');
+
+  const colorSwatches = AGENT_COLORS.map(c => `
+    <div class="color-swatch ${c === selectedAgentColor ? 'selected' : ''}"
+         style="background:${c}"
+         onclick="selectAgentColor('${c}', this)"></div>
+  `).join('');
+
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>${agent ? 'Edit Agent' : 'New Agent'}</h3>
+      <div class="field">
+        <label>Name</label>
+        <input id="m_name" type="text" value="${escHtml(agent?.name || '')}" placeholder="e.g. Sage" />
+      </div>
+      <div class="field">
+        <label>Color</label>
+        <div class="color-picker-row" id="agentColorPicker">${colorSwatches}</div>
+      </div>
+      <div class="field">
+        <label>Model</label>
+        <select id="m_model">${modelOptions}</select>
+      </div>
+      <div class="field">
+        <label>System Prompt</label>
+        <textarea id="m_prompt" placeholder="Describe the agent's role and personality...">${escHtml(agent?.system_prompt || '')}</textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn secondary sm" onclick="closeModal()">Cancel</button>
+        <button class="btn sm" onclick="saveAgent('${agentId || ''}')">Save</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.getElementById('m_name').focus();
+}
+
+function selectAgentColor(color, el) {
+  selectedAgentColor = color;
+  document.querySelectorAll('#agentColorPicker .color-swatch')
+    .forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function closeModal() {
+  document.getElementById('agentModal')?.remove();
+}
+
+async function saveAgent(agentId) {
+  const name = document.getElementById('m_name').value.trim();
+  const system_prompt = document.getElementById('m_prompt').value.trim();
+  const model = document.getElementById('m_model').value;
+
+  if (!name || !system_prompt) {
+    alert('Name and system prompt are required.');
+    return;
+  }
+
+  const payload = { name, system_prompt, model, color: selectedAgentColor, active: 1 };
+
+  if (agentId) {
+    const existing = agents.find(a => a.id === agentId);
+    await fetch(`/api/agents/${agentId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...existing, ...payload }),
+    });
+  } else {
+    await fetch('/api/agents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  }
+
+  closeModal();
+  await loadAgents();
+}
+</script>
+</body>
+</html>
