@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(join(__dirname, 'public')));
+app.use(express.static(__dirname)); // ✅ fixed
 
 // ─── Database ────────────────────────────────────────────────────────────────
 
@@ -126,6 +126,11 @@ app.get('/api/rooms/:id/stream', (req, res) => {
     clearInterval(ping);
     sseClients.get(id)?.delete(res);
   });
+});
+
+// ✅ added root route so "/" works
+app.get('/', (req, res) => {
+  res.sendFile(join(__dirname, 'index.html'));
 });
 
 // List all rooms
