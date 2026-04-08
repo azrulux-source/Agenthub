@@ -126,12 +126,30 @@
       cursor: pointer; border-radius: 0;
       display: flex; align-items: center; gap: 8px;
       transition: background 0.1s; font-size: 13px;
+      justify-content: space-between;
     }
     .room-item:hover { background: var(--panel); }
     .room-item.active { background: var(--panel); color: #fff; }
     .room-item .dot {
       width: 7px; height: 7px; border-radius: 50%;
       background: var(--muted); flex-shrink: 0;
+    }
+    .room-item .room-main {
+      display: flex; align-items: center; gap: 8px;
+      min-width: 0;
+    }
+    .room-item .room-delete {
+      color: #7f8ea8;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+    }
+    .room-item .room-delete:hover {
+      color: var(--error);
+      background: rgba(255,71,87,0.12);
+      border-color: rgba(255,71,87,0.25);
     }
     .room-item.active .dot { background: var(--accent); }
     .sidebar-add {
@@ -176,6 +194,15 @@
     }
     #chatHeader .status.err::before {
       content: '●'; color: var(--error); margin-right: 5px; font-size: 9px;
+    }
+    #chatHeader .presence {
+      font-size: 11px;
+      color: var(--muted);
+      max-width: 50%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: right;
     }
 
     #messages {
@@ -363,6 +390,63 @@
     .field textarea { resize: vertical; min-height: 90px; }
     .field select option { background: var(--panel); }
     .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+        /* ── Mobile layout ── */
+    @media (max-width: 1200px), (pointer: coarse) {
+      #app {
+        display: block;
+        height: 100dvh;
+      }
+      #sidebar, #main, #agentPanel {
+        display: none;
+        width: 100%;
+        min-width: 0;
+        height: calc(100dvh - 56px);
+        border: none;
+      }
+      #app[data-mobile-tab="rooms"] #sidebar { display: flex; }
+      #app[data-mobile-tab="chat"] #main { display: flex; }
+      #app[data-mobile-tab="ai"] #agentPanel { display: flex; }
+      #messages { padding: 12px; }
+      #inputArea { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
+      #msgInput { font-size: 16px; } /* avoid mobile zoom on focus */
+      #sendBtn { padding: 10px 14px; }
+      .mobile-tabbar { display: flex !important; }
+    }
+    .mobile-tabbar {
+      display: none;
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 56px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 300;
+    }
+    .mobile-tabbar button {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .mobile-tabbar button.active {
+      color: var(--accent);
+      background: rgba(61,142,248,0.1);
+    }
+    .file-strip {
+      border-bottom: 1px solid var(--border);
+      padding: 8px 12px;
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow-x: auto;
+    }
+    .file-link {
+      color: var(--accent);
+      text-decoration: none;
+      margin-right: 10px;
+    }
     .color-picker-row {
       display: flex; gap: 8px; flex-wrap: wrap;
     }
@@ -389,6 +473,7 @@
     <div class="sidebar-header">
       <h2>⬡ Agent Hub</h2>
       <div class="sub" id="sidebarUserLabel">—</div>
+      <div class="sub" id="buildInfo">build: …</div>
     </div>
     <div class="section-label">Rooms</div>
     <div id="roomList"></div>
@@ -405,10 +490,17 @@
   <div id="main">
     <div id="chatHeader">
       <div class="room-name" id="roomLabel">—</div>
-      <div class="status" id="connStatus">connecting...</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="btn secondary sm" onclick="downloadRoom()">Download</button>
+        <div class="presence" id="onlineUsers">online: —</div>
+        <div class="status" id="connStatus">connecting...</div>
+      </div>
     </div>
+    <div class="file-strip" id="fileStrip">files: none</div>
     <div id="messages"></div>
     <div id="inputArea">
+      <input id="fileInput" type="file" style="display:none" onchange="uploadFile(event)" />
+      <button class="btn secondary sm" onclick="document.getElementById('fileInput').click()">Attach</button>
       <textarea id="msgInput" rows="1" placeholder="Message..."></textarea>
       <button id="sendBtn" onclick="sendMessage()">Send</button>
     </div>
@@ -424,6 +516,12 @@
   </div>
 </div>
 
+<div class="mobile-tabbar" id="mobileTabbar">
+  <button id="tabRooms" onclick="setMobileTab('rooms')">Rooms</button>
+  <button id="tabChat" onclick="setMobileTab('chat')" class="active">Chat</button>
+  <button id="tabAi" onclick="setMobileTab('ai')">AI</button>
+</div>
+
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 let userName = '';
@@ -431,6 +529,9 @@ let userColor = '#3d8ef8';
 let currentRoomId = null;
 let eventSource = null;
 let thinkingAgents = new Set();
+let pollTimer = null;
+let presenceTimer = null;
+let files = [];
 
 const USER_COLORS = ['#3d8ef8','#00ff88','#ff6b6b','#ffd93d','#c77dff','#ff9f43','#48dbfb','#ff6eb4'];
 const AGENT_COLORS = ['#00ff88','#3d8ef8','#ff6b6b','#ffd93d','#c77dff','#ff9f43','#48dbfb','#ff6eb4'];
@@ -471,14 +572,32 @@ function enterHub() {
   localStorage.setItem('agentHubColor', userColor);
   document.getElementById('nameGate').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').setAttribute('data-mobile-tab', 'chat');
   document.getElementById('userLabel').textContent = userName;
   document.getElementById('sidebarUserLabel').textContent = userName;
   document.getElementById('userDot').style.background = userColor;
+  loadVersion();
   loadRooms();
   loadAgents();
 }
 
-// Pre-fill from localStorage
+async function loadVersion() {
+  try {
+    const data = await fetchJson('/api/version');
+    document.getElementById('buildInfo').textContent = `build: ${data.version}`;
+  } catch (_) {
+    document.getElementById('buildInfo').textContent = 'build: unknown';
+  }
+}
+
+function setMobileTab(tab) {
+  const app = document.getElementById('app');
+  app.setAttribute('data-mobile-tab', tab);
+  document.getElementById('tabRooms').classList.toggle('active', tab === 'rooms');
+  document.getElementById('tabChat').classList.toggle('active', tab === 'chat');
+  document.getElementById('tabAi').classList.toggle('active', tab === 'ai');
+}
+ // Pre-fill from localStorage
 window.addEventListener('DOMContentLoaded', () => {
   const savedName = localStorage.getItem('agentHubName');
   const savedColor = localStorage.getItem('agentHubColor');
@@ -499,24 +618,60 @@ function rgbToHex(rgb) {
   return '#' + m.slice(0,3).map(n => parseInt(n).toString(16).padStart(2,'0')).join('');
 }
 
+async function fetchJson(url, options) {
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`${res.status} ${res.statusText} - ${body.slice(0, 180)}`);
+  }
+  return res.json();
+}
+
+function showSystemNotice(text, color = 'var(--error)') {
+  const el = document.createElement('div');
+  el.className = 'msg';
+  el.style.color = color;
+  el.style.fontSize = '11px';
+  el.textContent = text;
+  document.getElementById('messages').appendChild(el);
+  scrollBottom();
+}
+
 // ── Rooms ─────────────────────────────────────────────────────────────────
 async function loadRooms() {
-  const res = await fetch('/api/rooms');
-  const rooms = await res.json();
-  const list = document.getElementById('roomList');
-  list.innerHTML = '';
-  rooms.forEach(r => {
-    const el = document.createElement('div');
-    el.className = 'room-item' + (r.id === currentRoomId ? ' active' : '');
-    el.innerHTML = `<div class="dot"></div>${escHtml(r.name)}`;
-    el.onclick = () => joinRoom(r.id, r.name);
-    list.appendChild(el);
-  });
-  if (!currentRoomId && rooms.length > 0) joinRoom(rooms[0].id, rooms[0].name);
+  try {
+    const rooms = await fetchJson('/api/rooms');
+    const list = document.getElementById('roomList');
+    list.innerHTML = '';
+    rooms.forEach(r => {
+      const el = document.createElement('div');
+      el.className = 'room-item' + (r.id === currentRoomId ? ' active' : '');
+      el.innerHTML = `
+        <div class="room-main"><div class="dot"></div>${escHtml(r.name)}</div>
+        ${r.id === 'main' ? '' : `<span class="room-delete" title="Delete room">✕</span>`}
+      `;
+      el.onclick = () => joinRoom(r.id, r.name);
+      const del = el.querySelector('.room-delete');
+      if (del) {
+        del.onclick = (evt) => {
+          evt.stopPropagation();
+          deleteRoom(r.id, r.name);
+        };
+      }
+      list.appendChild(el);
+    });
+    if (!currentRoomId && rooms.length > 0) joinRoom(rooms[0].id, rooms[0].name);
+  } catch (err) {
+    console.error('loadRooms error:', err);
+    document.getElementById('connStatus').className = 'status err';
+    document.getElementById('connStatus').textContent = 'api error';
+    showSystemNotice(`⚠ Could not load rooms: ${err.message}`);
+  }
 }
 
 function joinRoom(id, name) {
   currentRoomId = id;
+  setMobileTab('chat');
   document.getElementById('roomLabel').textContent = '# ' + name;
   document.getElementById('messages').innerHTML = '';
   thinkingAgents.clear();
@@ -525,13 +680,27 @@ function joinRoom(id, name) {
   });
   loadMessages(id);
   connectSSE(id);
+  loadAgents();
+  loadFiles();
+  loadPresence(id);
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => {
+    if (currentRoomId) loadMessages(currentRoomId, { replace: false });
+  }, 5000);
+  if (presenceTimer) clearInterval(presenceTimer);
+  presenceTimer = setInterval(() => loadPresence(currentRoomId), 5000);
 }
 
-async function loadMessages(roomId) {
-  const res = await fetch(`/api/rooms/${roomId}/messages`);
-  const msgs = await res.json();
-  msgs.forEach(m => renderMessage(m));
-  scrollBottom();
+async function loadMessages(roomId, { replace = true } = {}) {
+  try {
+    const msgs = await fetchJson(`/api/rooms/${roomId}/messages`);
+    if (replace) document.getElementById('messages').innerHTML = '';
+    msgs.forEach(m => renderMessage(m));
+    scrollBottom();
+  } catch (err) {
+    console.error('loadMessages error:', err);
+    showSystemNotice(`⚠ Could not load messages: ${err.message}`);
+  }
 }
 
 function showNewRoomModal() {
@@ -544,16 +713,96 @@ function showNewRoomModal() {
   }).then(() => loadRooms());
 }
 
+async function deleteRoom(id, name) {
+  if (!confirm(`Delete room "${name}"? This removes its messages/files.`)) return;
+  await fetch(`/api/rooms/${id}`, { method: 'DELETE' });
+  if (currentRoomId === id) currentRoomId = null;
+  await loadRooms();
+}
+
+function downloadRoom() {
+  if (!currentRoomId) return;
+  window.open(`/api/rooms/${currentRoomId}/export.txt`, '_blank');
+}
+
+async function loadFiles() {
+  if (!currentRoomId) return;
+  try {
+    files = await fetchJson(`/api/rooms/${currentRoomId}/files`);
+    renderFiles();
+  } catch (err) {
+    console.error('loadFiles error:', err);
+  }
+}
+
+function renderFiles() {
+  const el = document.getElementById('fileStrip');
+  if (!files.length) {
+    el.textContent = 'files: none (tap Attach below)';
+    return;
+  }
+  el.innerHTML = `files: ${files.map(f => `<a class="file-link" href="/api/files/${f.id}" target="_blank">${escHtml(f.name)}</a>`).join('')}`;
+}
+
+function updatePresence(users = []) {
+  const counts = new Map();
+  users.forEach((u) => {
+    const name = u.name || 'Anonymous';
+    counts.set(name, (counts.get(name) || 0) + 1);
+  });
+  const labels = Array.from(counts.entries()).map(([name, count]) => (count > 1 ? `${name} x${count}` : name));
+  document.getElementById('onlineUsers').textContent =
+    labels.length ? `online: ${labels.join(', ')}` : 'online: —';
+}
+
+async function loadPresence(roomId = currentRoomId) {
+  if (!roomId) return;
+  try {
+    const data = await fetchJson(`/api/rooms/${roomId}/presence`);
+    updatePresence(data.users || []);
+  } catch (_) {}
+}
+
+async function uploadFile(e) {
+  const file = e.target.files?.[0];
+  if (!file || !currentRoomId) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const contentBase64 = String(reader.result).split(',')[1];
+      await fetchJson(`/api/rooms/${currentRoomId}/files`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          contentBase64,
+          uploadedBy: userName,
+        }),
+      });
+      await loadFiles();
+      showSystemNotice(`📎 Uploaded: ${file.name}`, '#00ff88');
+    } catch (err) {
+      showSystemNotice(`⚠ Upload failed: ${err.message}`);
+    } finally {
+      e.target.value = '';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
 // ── SSE ───────────────────────────────────────────────────────────────────
 function connectSSE(roomId) {
   if (eventSource) eventSource.close();
   const status = document.getElementById('connStatus');
-
-  eventSource = new EventSource(`/api/rooms/${roomId}/stream`);
+  const qs = new URLSearchParams({ userName, userColor });
+  eventSource = new EventSource(`/api/rooms/${roomId}/stream?${qs.toString()}`);
 
   eventSource.addEventListener('connected', () => {
     status.className = 'status ok';
     status.textContent = 'connected';
+    loadMessages(roomId, { replace: false });
+    loadPresence(roomId);
   });
 
   eventSource.addEventListener('message', e => {
@@ -599,14 +848,19 @@ function connectSSE(roomId) {
     scrollBottom();
   });
 
+  eventSource.addEventListener('presence', e => {
+    const users = JSON.parse(e.data)?.users || [];
+    updatePresence(users);
+  });
+
   eventSource.onerror = () => {
     status.className = 'status err';
     status.textContent = 'reconnecting...';
   };
-}
-
-// ── Messages ──────────────────────────────────────────────────────────────
+          }
+  // ── Messages ──────────────────────────────────────────────────────────────
 function renderMessage(msg) {
+  if (msg?.id && document.querySelector(`.msg[data-id="${msg.id}"]`)) return;
   const el = document.createElement('div');
   el.className = 'msg ' + msg.role;
   el.dataset.id = msg.id;
@@ -685,9 +939,14 @@ document.getElementById('msgInput').addEventListener('keydown', e => {
 let agents = [];
 
 async function loadAgents() {
-  const res = await fetch('/api/agents');
-  agents = await res.json();
-  renderAgents();
+  try {
+    if (!currentRoomId) return;
+    agents = await fetchJson(`/api/agents?roomId=${encodeURIComponent(currentRoomId)}`);
+    renderAgents();
+  } catch (err) {
+    console.error('loadAgents error:', err);
+    showSystemNotice(`⚠ Could not load agents: ${err.message}`);
+  }
 }
 
 function renderAgents() {
@@ -725,14 +984,14 @@ async function toggleAgent(id, currentlyOn) {
   await fetch(`/api/agents/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...agent, active: currentlyOn ? 0 : 1 }),
+    body: JSON.stringify({ ...agent, active: currentlyOn ? 0 : 1, roomId: currentRoomId }),
   });
   await loadAgents();
 }
 
 async function deleteAgent(id) {
   if (!confirm('Delete this agent?')) return;
-  await fetch(`/api/agents/${id}`, { method: 'DELETE' });
+  await fetch(`/api/agents/${id}?roomId=${encodeURIComponent(currentRoomId)}`, { method: 'DELETE' });
   await loadAgents();
 }
 
@@ -815,13 +1074,13 @@ async function saveAgent(agentId) {
     await fetch(`/api/agents/${agentId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...existing, ...payload }),
+      body: JSON.stringify({ ...existing, ...payload, roomId: currentRoomId }),
     });
   } else {
     await fetch('/api/agents', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, roomId: currentRoomId }),
     });
   }
 
@@ -831,3 +1090,4 @@ async function saveAgent(agentId) {
 </script>
 </body>
 </html>
+  
