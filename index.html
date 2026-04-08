@@ -198,11 +198,17 @@
     #chatHeader .presence {
       font-size: 11px;
       color: var(--muted);
-      max-width: 50%;
+      max-width: 60%;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       text-align: right;
+    }
+    #chatMeta {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 0;
     }
 
     #messages {
@@ -311,6 +317,11 @@
     .panel-header h3 {
       font-family: var(--font-ui); font-size: 13px; font-weight: 700;
     }
+    .panel-sub {
+      font-size: 11px;
+      color: var(--muted);
+      padding: 8px 16px 0;
+    }
     #agentList {
       flex: 1; overflow-y: auto; padding: 8px;
     }
@@ -390,7 +401,8 @@
     .field textarea { resize: vertical; min-height: 90px; }
     .field select option { background: var(--panel); }
     .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
-        /* ── Mobile layout ── */
+
+    /* ── Mobile layout ── */
     @media (max-width: 1200px), (pointer: coarse) {
       #app {
         display: block;
@@ -407,6 +419,23 @@
       #app[data-mobile-tab="chat"] #main { display: flex; }
       #app[data-mobile-tab="ai"] #agentPanel { display: flex; }
       #messages { padding: 12px; }
+      #chatHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      #chatHeader .presence {
+        max-width: 100%;
+        flex: 1;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        text-align: left;
+      }
+      #chatMeta {
+        width: 100%;
+        flex-wrap: wrap;
+      }
       #inputArea { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
       #msgInput { font-size: 16px; } /* avoid mobile zoom on focus */
       #sendBtn { padding: 10px 14px; }
@@ -490,7 +519,7 @@
   <div id="main">
     <div id="chatHeader">
       <div class="room-name" id="roomLabel">—</div>
-      <div style="display:flex;align-items:center;gap:10px;">
+      <div id="chatMeta">
         <button class="btn secondary sm" onclick="downloadRoom()">Download</button>
         <div class="presence" id="onlineUsers">online: —</div>
         <div class="status" id="connStatus">connecting...</div>
@@ -512,6 +541,7 @@
       <h3>Agents</h3>
       <button class="btn sm secondary" onclick="showAgentModal(null)">+ New</button>
     </div>
+    <div class="panel-sub" id="agentRoomLabel">for room: —</div>
     <div id="agentList"></div>
   </div>
 </div>
@@ -597,7 +627,8 @@ function setMobileTab(tab) {
   document.getElementById('tabChat').classList.toggle('active', tab === 'chat');
   document.getElementById('tabAi').classList.toggle('active', tab === 'ai');
 }
- // Pre-fill from localStorage
+
+// Pre-fill from localStorage
 window.addEventListener('DOMContentLoaded', () => {
   const savedName = localStorage.getItem('agentHubName');
   const savedColor = localStorage.getItem('agentHubColor');
@@ -628,13 +659,14 @@ async function fetchJson(url, options) {
 }
 
 function showSystemNotice(text, color = 'var(--error)') {
+  const shouldKeepBottom = isNearBottom();
   const el = document.createElement('div');
   el.className = 'msg';
   el.style.color = color;
   el.style.fontSize = '11px';
   el.textContent = text;
   document.getElementById('messages').appendChild(el);
-  scrollBottom();
+  if (shouldKeepBottom) scrollBottom();
 }
 
 // ── Rooms ─────────────────────────────────────────────────────────────────
@@ -673,6 +705,7 @@ function joinRoom(id, name) {
   currentRoomId = id;
   setMobileTab('chat');
   document.getElementById('roomLabel').textContent = '# ' + name;
+  document.getElementById('agentRoomLabel').textContent = `for room: # ${name}`;
   document.getElementById('messages').innerHTML = '';
   thinkingAgents.clear();
   document.querySelectorAll('.room-item').forEach(el => {
@@ -693,10 +726,11 @@ function joinRoom(id, name) {
 
 async function loadMessages(roomId, { replace = true } = {}) {
   try {
+    const shouldKeepBottom = isNearBottom();
     const msgs = await fetchJson(`/api/rooms/${roomId}/messages`);
     if (replace) document.getElementById('messages').innerHTML = '';
     msgs.forEach(m => renderMessage(m));
-    scrollBottom();
+    if (replace || shouldKeepBottom) scrollBottom();
   } catch (err) {
     console.error('loadMessages error:', err);
     showSystemNotice(`⚠ Could not load messages: ${err.message}`);
@@ -806,6 +840,7 @@ function connectSSE(roomId) {
   });
 
   eventSource.addEventListener('message', e => {
+    const shouldKeepBottom = isNearBottom();
     const msg = JSON.parse(e.data);
     // Remove thinking indicator for this agent if present
     if (msg.agent_id) {
@@ -814,10 +849,11 @@ function connectSSE(roomId) {
       thinkingAgents.delete(msg.agent_id);
     }
     renderMessage(msg);
-    scrollBottom();
+    if (shouldKeepBottom) scrollBottom();
   });
 
   eventSource.addEventListener('thinking', e => {
+    const shouldKeepBottom = isNearBottom();
     const { agentId, agentName, color } = JSON.parse(e.data);
     if (thinkingAgents.has(agentId)) return;
     thinkingAgents.add(agentId);
@@ -834,10 +870,11 @@ function connectSSE(roomId) {
         <span></span><span></span><span></span>
       </div>`;
     document.getElementById('messages').appendChild(el);
-    scrollBottom();
+    if (shouldKeepBottom) scrollBottom();
   });
 
   eventSource.addEventListener('agent_error', e => {
+    const shouldKeepBottom = isNearBottom();
     const { agentName, error } = JSON.parse(e.data);
     const el = document.createElement('div');
     el.className = 'msg';
@@ -845,7 +882,7 @@ function connectSSE(roomId) {
     el.style.fontSize = '11px';
     el.textContent = `⚠ ${agentName}: ${error}`;
     document.getElementById('messages').appendChild(el);
-    scrollBottom();
+    if (shouldKeepBottom) scrollBottom();
   });
 
   eventSource.addEventListener('presence', e => {
@@ -857,8 +894,9 @@ function connectSSE(roomId) {
     status.className = 'status err';
     status.textContent = 'reconnecting...';
   };
-          }
-  // ── Messages ──────────────────────────────────────────────────────────────
+}
+
+// ── Messages ──────────────────────────────────────────────────────────────
 function renderMessage(msg) {
   if (msg?.id && document.querySelector(`.msg[data-id="${msg.id}"]`)) return;
   const el = document.createElement('div');
@@ -900,6 +938,11 @@ function escHtml(s) {
 function scrollBottom() {
   const el = document.getElementById('messages');
   el.scrollTop = el.scrollHeight;
+}
+
+function isNearBottom() {
+  const el = document.getElementById('messages');
+  return (el.scrollHeight - el.scrollTop - el.clientHeight) < 120;
 }
 
 // ── Send message ──────────────────────────────────────────────────────────
@@ -1090,4 +1133,3 @@ async function saveAgent(agentId) {
 </script>
 </body>
 </html>
-  
