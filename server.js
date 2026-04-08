@@ -111,7 +111,6 @@ async function initDB() {
 }
 
 // ─── SSE (real-time broadcasts) ───────────────────────────────────────────────
-// Map of roomId -> Set of express response objects
 
 const sseClients = new Map();
 const roomPresence = new Map();
@@ -134,7 +133,6 @@ function broadcastPresence(roomId) {
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-// SSE stream for a room
 app.get('/api/rooms/:id/stream', (req, res) => {
   const { id } = req.params;
   const clientId = randomUUID();
@@ -154,7 +152,6 @@ app.get('/api/rooms/:id/stream', (req, res) => {
   res.write(`event: connected\ndata: ${JSON.stringify({ roomId: id })}\n\n`);
   broadcastPresence(id);
 
-  // Keep alive ping every 25s
   const ping = setInterval(() => {
     try {
       res.write(': ping\n\n');
@@ -172,7 +169,6 @@ app.get('/api/rooms/:id/stream', (req, res) => {
   });
 });
 
-// Serve SPA shell
 app.get('/', (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.sendFile(join(__dirname, 'index.html'));
@@ -185,7 +181,6 @@ app.get('/api/version', (req, res) => {
   });
 });
 
-// List all rooms
 app.get('/api/rooms', async (req, res) => {
   try {
     const { rows } = await db.execute('SELECT * FROM rooms ORDER BY created_at ASC');
@@ -195,7 +190,6 @@ app.get('/api/rooms', async (req, res) => {
   }
 });
 
-// Create a room
 app.post('/api/rooms', async (req, res) => {
   try {
     const { name } = req.body;
@@ -208,7 +202,6 @@ app.post('/api/rooms', async (req, res) => {
   }
 });
 
-// Delete a room
 app.delete('/api/rooms/:id', async (req, res) => {
   try {
     const roomId = req.params.id;
@@ -228,13 +221,11 @@ app.delete('/api/rooms/:id', async (req, res) => {
   }
 });
 
-// Presence snapshot (fallback when SSE is flaky on mobile)
 app.get('/api/rooms/:id/presence', (req, res) => {
   const users = Array.from(roomPresence.get(req.params.id)?.values() || []);
   res.json({ users });
 });
 
-// Get messages for a room (last 100)
 app.get('/api/rooms/:id/messages', async (req, res) => {
   try {
     const { rows } = await db.execute({
@@ -247,7 +238,6 @@ app.get('/api/rooms/:id/messages', async (req, res) => {
   }
 });
 
-// List files for a room
 app.get('/api/rooms/:id/files', async (req, res) => {
   try {
     const { rows } = await db.execute({
@@ -266,7 +256,6 @@ app.get('/api/rooms/:id/files', async (req, res) => {
   }
 });
 
-// Upload file to room
 app.post('/api/rooms/:id/files', async (req, res) => {
   try {
     const roomId = req.params.id;
@@ -288,7 +277,6 @@ app.post('/api/rooms/:id/files', async (req, res) => {
   }
 });
 
-// Download file
 app.get('/api/files/:id', async (req, res) => {
   try {
     const { rows } = await db.execute({
@@ -299,22 +287,19 @@ app.get('/api/files/:id', async (req, res) => {
     if (!file) return res.status(404).send('File not found');
     const buffer = Buffer.from(file.content_base64, 'base64');
     res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename=\"${file.name}\"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${file.name}"`);
     res.send(buffer);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Send a message — triggers all active agents
 app.post('/api/rooms/:id/chat', async (req, res) => {
   const roomId = req.params.id;
   const { content, userName = 'Anonymous', userColor = '#a0aec0' } = req.body;
-
   if (!content?.trim()) return res.status(400).json({ error: 'Content required' });
 
   try {
-    // Save user message
     const userMsgId = randomUUID();
     const now = Math.floor(Date.now() / 1000);
     await db.execute({
@@ -322,7 +307,6 @@ app.post('/api/rooms/:id/chat', async (req, res) => {
       args: [userMsgId, roomId, 'user', content.trim(), userName, userColor, now],
     });
 
-    // Broadcast immediately so all users see it right away
     broadcast(roomId, 'message', {
       id: userMsgId,
       room_id: roomId,
@@ -333,10 +317,8 @@ app.post('/api/rooms/:id/chat', async (req, res) => {
       created_at: now,
     });
 
-    // Respond to client fast — agents run async
     res.json({ ok: true });
 
-    // Get active agents
     const { rows: agents } = await db.execute({
       sql: `
         SELECT a.*, ra.active
@@ -349,22 +331,17 @@ app.post('/api/rooms/:id/chat', async (req, res) => {
     });
     if (agents.length === 0) return;
 
-    // Get recent message history for context
     const { rows: history } = await db.execute({
       sql: 'SELECT * FROM messages WHERE room_id=? ORDER BY created_at DESC LIMIT 60',
       args: [roomId],
     });
     const sortedHistory = history.reverse();
 
-    // Fire all agents in parallel
     await Promise.all(
       agents.map(async (agent) => {
         try {
-          // Tell clients this agent is thinking
           broadcast(roomId, 'thinking', { agentId: agent.id, agentName: agent.name, color: agent.color });
 
-          // Build context for this agent:
-          // user messages + only this agent's own prior responses
           const contextMessages = sortedHistory
             .filter((m) => m.role === 'user' || m.agent_id === agent.id)
             .map((m) => ({
@@ -397,7 +374,6 @@ app.post('/api/rooms/:id/chat', async (req, res) => {
           const data = await response.json();
           const reply = data.choices?.[0]?.message?.content?.trim() || '[no response]';
 
-          // Save agent response
           const agentMsgId = randomUUID();
           const agentNow = Math.floor(Date.now() / 1000);
           await db.execute({
@@ -405,7 +381,6 @@ app.post('/api/rooms/:id/chat', async (req, res) => {
             args: [agentMsgId, roomId, 'assistant', reply, agent.id, agent.name, agent.color, agentNow],
           });
 
-          // Broadcast agent response
           broadcast(roomId, 'message', {
             id: agentMsgId,
             room_id: roomId,
@@ -428,7 +403,6 @@ app.post('/api/rooms/:id/chat', async (req, res) => {
   }
 });
 
-// List all agents
 app.get('/api/agents', async (req, res) => {
   try {
     const roomId = req.query.roomId;
@@ -449,7 +423,6 @@ app.get('/api/agents', async (req, res) => {
   }
 });
 
-// Create an agent
 app.post('/api/agents', async (req, res) => {
   try {
     const { name, system_prompt, model = 'llama-3.3-70b-versatile', color = '#00ff88', roomId } = req.body;
@@ -472,7 +445,6 @@ app.post('/api/agents', async (req, res) => {
   }
 });
 
-// Update an agent
 app.put('/api/agents/:id', async (req, res) => {
   try {
     const { name, system_prompt, model, color, active, roomId } = req.body;
@@ -491,7 +463,6 @@ app.put('/api/agents/:id', async (req, res) => {
   }
 });
 
-// Delete an agent
 app.delete('/api/agents/:id', async (req, res) => {
   try {
     const roomId = req.query.roomId;
@@ -510,7 +481,6 @@ app.delete('/api/agents/:id', async (req, res) => {
   }
 });
 
-// Download room transcript
 app.get('/api/rooms/:id/export.txt', async (req, res) => {
   try {
     const roomId = req.params.id;
@@ -525,7 +495,7 @@ app.get('/api/rooms/:id/export.txt', async (req, res) => {
     });
     const body = lines.join('\n\n');
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename=\"room-${roomId}-transcript.txt\"`);
+    res.setHeader('Content-Disposition', `attachment; filename="room-${roomId}-transcript.txt"`);
     res.send(body);
   } catch (err) {
     res.status(500).json({ error: err.message });
