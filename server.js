@@ -9,10 +9,11 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
+const APP_VERSION = process.env.RENDER_GIT_COMMIT?.slice(0, 7) || process.env.APP_VERSION || 'dev';
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(__dirname)); // ✅ fixed
+app.use(express.static(__dirname));
 
 // ─── Database ────────────────────────────────────────────────────────────────
 
@@ -36,8 +37,16 @@ async function initDB() {
       system_prompt TEXT NOT NULL,
       model TEXT DEFAULT 'llama-3.3-70b-versatile',
       color TEXT DEFAULT '#00ff88',
-      active INTEGER DEFAULT 1,
       created_at INTEGER DEFAULT (unixepoch())
+    )
+  `);
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS room_agents (
+      room_id TEXT NOT NULL,
+      agent_id TEXT NOT NULL,
+      active INTEGER DEFAULT 1,
+      created_at INTEGER DEFAULT (unixepoch()),
+      PRIMARY KEY (room_id, agent_id)
     )
   `);
   await db.execute(`
@@ -50,6 +59,18 @@ async function initDB() {
       agent_name TEXT,
       user_name TEXT,
       color TEXT,
+      created_at INTEGER DEFAULT (unixepoch())
+    )
+  `);
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS room_files (
+      id TEXT PRIMARY KEY,
+      room_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      mime_type TEXT,
+      size_bytes INTEGER DEFAULT 0,
+      content_base64 TEXT NOT NULL,
+      uploaded_by TEXT,
       created_at INTEGER DEFAULT (unixepoch())
     )
   `);
@@ -68,7 +89,7 @@ async function initDB() {
   const { rows: agentRows } = await db.execute('SELECT COUNT(*) as c FROM agents');
   if (Number(agentRows[0].c) === 0) {
     await db.execute({
-      sql: 'INSERT INTO agents (id, name, system_prompt, model, color, active) VALUES (?, ?, ?, ?, ?, 1)',
+      sql: 'INSERT INTO agents (id, name, system_prompt, model, color) VALUES (?, ?, ?, ?, ?)',
       args: [
         randomUUID(),
         'Atlas',
@@ -79,12 +100,21 @@ async function initDB() {
     });
     console.log('[DB] Created default agent: Atlas');
   }
+
+  // Ensure each room has mapping rows for existing agents
+  await db.execute(`
+    INSERT OR IGNORE INTO room_agents (room_id, agent_id, active)
+    SELECT rooms.id, agents.id, 1
+    FROM rooms
+    CROSS JOIN agents
+  `);
 }
 
 // ─── SSE (real-time broadcasts) ───────────────────────────────────────────────
 // Map of roomId -> Set of express response objects
 
 const sseClients = new Map();
+const roomPresence = new Map();
 
 function broadcast(roomId, event, data) {
   const clients = sseClients.get(roomId);
@@ -97,11 +127,19 @@ function broadcast(roomId, event, data) {
   });
 }
 
+function broadcastPresence(roomId) {
+  const users = Array.from(roomPresence.get(roomId)?.values() || []);
+  broadcast(roomId, 'presence', { users });
+}
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 // SSE stream for a room
 app.get('/api/rooms/:id/stream', (req, res) => {
   const { id } = req.params;
+  const clientId = randomUUID();
+  const userName = String(req.query.userName || 'Anonymous').trim().slice(0, 32) || 'Anonymous';
+  const userColor = String(req.query.userColor || '#a0aec0').trim().slice(0, 16) || '#a0aec0';
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -110,8 +148,11 @@ app.get('/api/rooms/:id/stream', (req, res) => {
 
   if (!sseClients.has(id)) sseClients.set(id, new Set());
   sseClients.get(id).add(res);
+  if (!roomPresence.has(id)) roomPresence.set(id, new Map());
+  roomPresence.get(id).set(clientId, { id: clientId, name: userName, color: userColor });
 
   res.write(`event: connected\ndata: ${JSON.stringify({ roomId: id })}\n\n`);
+  broadcastPresence(id);
 
   // Keep alive ping every 25s
   const ping = setInterval(() => {
@@ -125,12 +166,23 @@ app.get('/api/rooms/:id/stream', (req, res) => {
   req.on('close', () => {
     clearInterval(ping);
     sseClients.get(id)?.delete(res);
+    roomPresence.get(id)?.delete(clientId);
+    if (roomPresence.get(id)?.size === 0) roomPresence.delete(id);
+    broadcastPresence(id);
   });
 });
 
-// ✅ added root route so "/" works
+// Serve SPA shell
 app.get('/', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   res.sendFile(join(__dirname, 'index.html'));
+});
+
+app.get('/api/version', (req, res) => {
+  res.json({
+    version: APP_VERSION,
+    now: new Date().toISOString(),
+  });
 });
 
 // List all rooms
@@ -156,6 +208,32 @@ app.post('/api/rooms', async (req, res) => {
   }
 });
 
+// Delete a room
+app.delete('/api/rooms/:id', async (req, res) => {
+  try {
+    const roomId = req.params.id;
+    if (roomId === 'main') return res.status(400).json({ error: 'Main Room cannot be deleted' });
+    await db.execute({ sql: 'DELETE FROM messages WHERE room_id=?', args: [roomId] });
+    await db.execute({ sql: 'DELETE FROM room_agents WHERE room_id=?', args: [roomId] });
+    await db.execute({ sql: 'DELETE FROM room_files WHERE room_id=?', args: [roomId] });
+    await db.execute({ sql: 'DELETE FROM rooms WHERE id=?', args: [roomId] });
+    sseClients.get(roomId)?.forEach((r) => {
+      try { r.end(); } catch (_) {}
+    });
+    sseClients.delete(roomId);
+    roomPresence.delete(roomId);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Presence snapshot (fallback when SSE is flaky on mobile)
+app.get('/api/rooms/:id/presence', (req, res) => {
+  const users = Array.from(roomPresence.get(req.params.id)?.values() || []);
+  res.json({ users });
+});
+
 // Get messages for a room (last 100)
 app.get('/api/rooms/:id/messages', async (req, res) => {
   try {
@@ -164,6 +242,65 @@ app.get('/api/rooms/:id/messages', async (req, res) => {
       args: [req.params.id],
     });
     res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// List files for a room
+app.get('/api/rooms/:id/files', async (req, res) => {
+  try {
+    const { rows } = await db.execute({
+      sql: `
+        SELECT id, room_id, name, mime_type, size_bytes, uploaded_by, created_at
+        FROM room_files
+        WHERE room_id=?
+        ORDER BY created_at DESC
+        LIMIT 100
+      `,
+      args: [req.params.id],
+    });
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Upload file to room
+app.post('/api/rooms/:id/files', async (req, res) => {
+  try {
+    const roomId = req.params.id;
+    const { name, mimeType = 'application/octet-stream', contentBase64, uploadedBy = 'Anonymous' } = req.body || {};
+    if (!name || !contentBase64) return res.status(400).json({ error: 'name and contentBase64 required' });
+    const sizeBytes = Math.floor((contentBase64.length * 3) / 4);
+    if (sizeBytes > 5 * 1024 * 1024) return res.status(400).json({ error: 'File too large (max 5MB)' });
+    const id = randomUUID();
+    await db.execute({
+      sql: `
+        INSERT INTO room_files (id, room_id, name, mime_type, size_bytes, content_base64, uploaded_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `,
+      args: [id, roomId, name, mimeType, sizeBytes, contentBase64, uploadedBy],
+    });
+    res.json({ ok: true, id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Download file
+app.get('/api/files/:id', async (req, res) => {
+  try {
+    const { rows } = await db.execute({
+      sql: 'SELECT * FROM room_files WHERE id=?',
+      args: [req.params.id],
+    });
+    const file = rows[0];
+    if (!file) return res.status(404).send('File not found');
+    const buffer = Buffer.from(file.content_base64, 'base64');
+    res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename=\"${file.name}\"`);
+    res.send(buffer);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -200,7 +337,16 @@ app.post('/api/rooms/:id/chat', async (req, res) => {
     res.json({ ok: true });
 
     // Get active agents
-    const { rows: agents } = await db.execute('SELECT * FROM agents WHERE active=1 ORDER BY created_at ASC');
+    const { rows: agents } = await db.execute({
+      sql: `
+        SELECT a.*, ra.active
+        FROM agents a
+        JOIN room_agents ra ON ra.agent_id = a.id
+        WHERE ra.room_id = ? AND ra.active = 1
+        ORDER BY a.created_at ASC
+      `,
+      args: [roomId],
+    });
     if (agents.length === 0) return;
 
     // Get recent message history for context
@@ -285,7 +431,18 @@ app.post('/api/rooms/:id/chat', async (req, res) => {
 // List all agents
 app.get('/api/agents', async (req, res) => {
   try {
-    const { rows } = await db.execute('SELECT * FROM agents ORDER BY created_at ASC');
+    const roomId = req.query.roomId;
+    if (!roomId) return res.status(400).json({ error: 'roomId query param required' });
+    const { rows } = await db.execute({
+      sql: `
+        SELECT a.*, ra.active
+        FROM agents a
+        JOIN room_agents ra ON ra.agent_id = a.id
+        WHERE ra.room_id = ?
+        ORDER BY a.created_at ASC
+      `,
+      args: [roomId],
+    });
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -295,16 +452,21 @@ app.get('/api/agents', async (req, res) => {
 // Create an agent
 app.post('/api/agents', async (req, res) => {
   try {
-    const { name, system_prompt, model = 'llama-3.3-70b-versatile', color = '#00ff88' } = req.body;
+    const { name, system_prompt, model = 'llama-3.3-70b-versatile', color = '#00ff88', roomId } = req.body;
     if (!name?.trim() || !system_prompt?.trim()) {
       return res.status(400).json({ error: 'Name and system_prompt required' });
     }
+    if (!roomId) return res.status(400).json({ error: 'roomId required' });
     const id = randomUUID();
     await db.execute({
-      sql: 'INSERT INTO agents (id, name, system_prompt, model, color, active) VALUES (?, ?, ?, ?, ?, 1)',
+      sql: 'INSERT INTO agents (id, name, system_prompt, model, color) VALUES (?, ?, ?, ?, ?)',
       args: [id, name.trim(), system_prompt.trim(), model, color],
     });
-    res.json({ id, name: name.trim(), system_prompt: system_prompt.trim(), model, color, active: 1 });
+    await db.execute({
+      sql: 'INSERT INTO room_agents (room_id, agent_id, active) VALUES (?, ?, 1)',
+      args: [roomId, id],
+    });
+    res.json({ id, name: name.trim(), system_prompt: system_prompt.trim(), model, color, active: 1, roomId });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -313,10 +475,15 @@ app.post('/api/agents', async (req, res) => {
 // Update an agent
 app.put('/api/agents/:id', async (req, res) => {
   try {
-    const { name, system_prompt, model, color, active } = req.body;
+    const { name, system_prompt, model, color, active, roomId } = req.body;
+    if (!roomId) return res.status(400).json({ error: 'roomId required' });
     await db.execute({
-      sql: 'UPDATE agents SET name=?, system_prompt=?, model=?, color=?, active=? WHERE id=?',
-      args: [name, system_prompt, model, color, active ? 1 : 0, req.params.id],
+      sql: 'UPDATE agents SET name=?, system_prompt=?, model=?, color=? WHERE id=?',
+      args: [name, system_prompt, model, color, req.params.id],
+    });
+    await db.execute({
+      sql: 'UPDATE room_agents SET active=? WHERE room_id=? AND agent_id=?',
+      args: [active ? 1 : 0, roomId, req.params.id],
     });
     res.json({ ok: true });
   } catch (err) {
@@ -327,8 +494,39 @@ app.put('/api/agents/:id', async (req, res) => {
 // Delete an agent
 app.delete('/api/agents/:id', async (req, res) => {
   try {
-    await db.execute({ sql: 'DELETE FROM agents WHERE id=?', args: [req.params.id] });
+    const roomId = req.query.roomId;
+    if (!roomId) return res.status(400).json({ error: 'roomId query param required' });
+    await db.execute({ sql: 'DELETE FROM room_agents WHERE room_id=? AND agent_id=?', args: [roomId, req.params.id] });
+    const { rows } = await db.execute({
+      sql: 'SELECT COUNT(*) AS c FROM room_agents WHERE agent_id=?',
+      args: [req.params.id],
+    });
+    if (Number(rows[0].c) === 0) {
+      await db.execute({ sql: 'DELETE FROM agents WHERE id=?', args: [req.params.id] });
+    }
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Download room transcript
+app.get('/api/rooms/:id/export.txt', async (req, res) => {
+  try {
+    const roomId = req.params.id;
+    const { rows } = await db.execute({
+      sql: 'SELECT * FROM messages WHERE room_id=? ORDER BY created_at ASC',
+      args: [roomId],
+    });
+    const lines = rows.map((m) => {
+      const t = new Date((m.created_at || 0) * 1000).toISOString();
+      const who = m.role === 'user' ? (m.user_name || 'User') : (m.agent_name || 'Agent');
+      return `[${t}] ${who}: ${m.content}`;
+    });
+    const body = lines.join('\n\n');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename=\"room-${roomId}-transcript.txt\"`);
+    res.send(body);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
