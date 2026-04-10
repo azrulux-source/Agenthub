@@ -19,43 +19,33 @@
       --accent:    #3d8ef8;
       --user-bg:   #141e30;
       --agent-bg:  #0d1a14;
+      --tool-bg:   #12181a;
       --error:     #ff4757;
+      --warn:      #ffd93d;
       --radius:    8px;
       --font-mono: 'JetBrains Mono', monospace;
       --font-ui:   'Syne', sans-serif;
     }
 
     html, body { height: 100%; overflow: hidden; }
-
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font-mono);
-      font-size: 13px;
-      display: flex;
-      flex-direction: column;
+      background: var(--bg); color: var(--text);
+      font-family: var(--font-mono); font-size: 13px;
+      display: flex; flex-direction: column;
     }
 
     /* ── Name Gate ── */
     #nameGate {
-      position: fixed; inset: 0;
-      background: var(--bg);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 100;
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
     }
     .gate-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 40px;
-      width: 340px;
-      text-align: center;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 40px; width: 340px; text-align: center;
     }
     .gate-box h1 {
-      font-family: var(--font-ui);
-      font-size: 28px; font-weight: 800;
-      letter-spacing: -0.5px;
-      margin-bottom: 6px;
+      font-family: var(--font-ui); font-size: 28px; font-weight: 800;
+      letter-spacing: -0.5px; margin-bottom: 6px;
     }
     .gate-box p { color: var(--muted); margin-bottom: 28px; font-size: 12px; }
     .gate-box input {
@@ -63,36 +53,30 @@
       background: var(--panel); border: 1px solid var(--border);
       border-radius: var(--radius); color: var(--text);
       font-family: var(--font-ui); font-size: 15px;
-      outline: none; margin-bottom: 10px;
-      text-align: center;
+      outline: none; margin-bottom: 10px; text-align: center;
     }
     .gate-box input:focus { border-color: var(--accent); }
-    .color-row {
-      display: flex; gap: 8px; justify-content: center; margin-bottom: 20px;
-    }
+    .color-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; }
     .color-swatch {
       width: 24px; height: 24px; border-radius: 50%;
       cursor: pointer; border: 2px solid transparent;
       transition: border-color 0.15s, transform 0.15s;
     }
-    .color-swatch.selected, .color-swatch:hover {
-      border-color: #fff; transform: scale(1.2);
-    }
+    .color-swatch.selected, .color-swatch:hover { border-color: #fff; transform: scale(1.2); }
+
+    /* ── Buttons ── */
     .btn {
       display: inline-block; padding: 10px 28px;
       background: var(--accent); color: #fff;
       font-family: var(--font-ui); font-weight: 600; font-size: 14px;
       border: none; border-radius: var(--radius);
-      cursor: pointer; transition: opacity 0.15s;
-      width: 100%;
+      cursor: pointer; transition: opacity 0.15s; width: 100%;
     }
     .btn:hover { opacity: 0.85; }
-    .btn.secondary {
-      background: var(--panel); border: 1px solid var(--border);
-      color: var(--text);
-    }
+    .btn.secondary { background: var(--panel); border: 1px solid var(--border); color: var(--text); }
     .btn.danger { background: var(--error); }
     .btn.sm { padding: 6px 14px; font-size: 12px; width: auto; }
+    .btn.xs { padding: 3px 10px; font-size: 11px; width: auto; }
 
     /* ── Layout ── */
     #app { display: flex; height: 100vh; overflow: hidden; }
@@ -100,174 +84,105 @@
     /* ── Sidebar ── */
     #sidebar {
       width: 220px; min-width: 220px;
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-      display: flex; flex-direction: column;
-      overflow: hidden;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
     }
-    .sidebar-header {
-      padding: 16px;
-      border-bottom: 1px solid var(--border);
-    }
-    .sidebar-header h2 {
-      font-family: var(--font-ui);
-      font-size: 16px; font-weight: 800;
-      letter-spacing: -0.3px;
-    }
+    .sidebar-header { padding: 16px; border-bottom: 1px solid var(--border); }
+    .sidebar-header h2 { font-family: var(--font-ui); font-size: 16px; font-weight: 800; letter-spacing: -0.3px; }
     .sidebar-header .sub { color: var(--muted); font-size: 11px; margin-top: 2px; }
     .section-label {
-      padding: 12px 16px 6px;
-      font-size: 10px; font-weight: 600;
-      color: var(--muted); letter-spacing: 0.08em;
-      text-transform: uppercase;
+      padding: 12px 16px 6px; font-size: 10px; font-weight: 600;
+      color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase;
     }
     .room-item {
-      padding: 8px 16px;
-      cursor: pointer; border-radius: 0;
+      padding: 8px 16px; cursor: pointer;
       display: flex; align-items: center; gap: 8px;
-      transition: background 0.1s; font-size: 13px;
-      justify-content: space-between;
+      transition: background 0.1s; font-size: 13px; justify-content: space-between;
     }
     .room-item:hover { background: var(--panel); }
     .room-item.active { background: var(--panel); color: #fff; }
-    .room-item .dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--muted); flex-shrink: 0;
-    }
-    .room-item .room-main {
-      display: flex; align-items: center; gap: 8px;
-      min-width: 0;
-    }
-    .room-item .room-delete {
-      color: #7f8ea8;
-      font-size: 14px;
-      font-weight: 700;
-      padding: 2px 6px;
-      border-radius: 4px;
-      border: 1px solid transparent;
-    }
-    .room-item .room-delete:hover {
-      color: var(--error);
-      background: rgba(255,71,87,0.12);
-      border-color: rgba(255,71,87,0.25);
-    }
+    .room-item .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
     .room-item.active .dot { background: var(--accent); }
+    .room-item .room-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .room-item .room-delete {
+      color: #7f8ea8; font-size: 14px; font-weight: 700;
+      padding: 2px 6px; border-radius: 4px; border: 1px solid transparent;
+    }
+    .room-item .room-delete:hover { color: var(--error); background: rgba(255,71,87,0.12); border-color: rgba(255,71,87,0.25); }
     .sidebar-add {
-      padding: 6px 16px;
-      color: var(--accent); font-size: 12px;
+      padding: 6px 16px; color: var(--accent); font-size: 12px;
       cursor: pointer; display: flex; align-items: center; gap: 6px;
     }
     .sidebar-add:hover { text-decoration: underline; }
-    .sidebar-footer {
-      margin-top: auto;
-      padding: 12px 16px;
-      border-top: 1px solid var(--border);
-    }
-    .user-badge {
-      display: flex; align-items: center; gap: 8px;
-    }
-    .user-dot {
-      width: 10px; height: 10px; border-radius: 50%;
-      flex-shrink: 0;
-    }
+    .sidebar-footer { margin-top: auto; padding: 12px 16px; border-top: 1px solid var(--border); }
+    .user-badge { display: flex; align-items: center; gap: 8px; }
+    .user-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .user-name { font-size: 13px; font-weight: 600; }
 
     /* ── Main ── */
-    #main {
-      flex: 1; display: flex; flex-direction: column;
-      overflow: hidden;
-    }
+    #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
     #chatHeader {
-      padding: 12px 20px;
-      border-bottom: 1px solid var(--border);
+      padding: 12px 20px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
       background: var(--surface);
     }
-    #chatHeader .room-name {
-      font-family: var(--font-ui); font-size: 15px; font-weight: 700;
-    }
-    #chatHeader .status {
-      font-size: 11px; color: var(--muted);
-    }
-    #chatHeader .status.ok::before {
-      content: '●'; color: #00ff88; margin-right: 5px; font-size: 9px;
-    }
-    #chatHeader .status.err::before {
-      content: '●'; color: var(--error); margin-right: 5px; font-size: 9px;
-    }
+    #chatHeader .room-name { font-family: var(--font-ui); font-size: 15px; font-weight: 700; }
+    #chatHeader .status { font-size: 11px; color: var(--muted); }
+    #chatHeader .status.ok::before { content: '●'; color: #00ff88; margin-right: 5px; font-size: 9px; }
+    #chatHeader .status.err::before { content: '●'; color: var(--error); margin-right: 5px; font-size: 9px; }
     #chatHeader .presence {
-      font-size: 11px;
-      color: var(--muted);
-      max-width: 60%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-align: right;
+      font-size: 11px; color: var(--muted);
+      max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right;
     }
-    #chatMeta {
-      display:flex;
-      align-items:center;
-      gap:10px;
-      min-width: 0;
-    }
+    #chatMeta { display: flex; align-items: center; gap: 10px; min-width: 0; }
 
     #messages {
-      flex: 1; overflow-y: auto;
-      padding: 16px 20px;
+      flex: 1; overflow-y: auto; padding: 16px 20px;
       display: flex; flex-direction: column; gap: 4px;
     }
     #messages::-webkit-scrollbar { width: 4px; }
-    #messages::-webkit-scrollbar-track { background: transparent; }
     #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
     .msg {
-      display: flex; gap: 10px;
-      padding: 8px 12px; border-radius: var(--radius);
-      line-height: 1.6; max-width: 85%;
-      animation: fadeIn 0.2s ease;
+      display: flex; gap: 10px; padding: 8px 12px;
+      border-radius: var(--radius); line-height: 1.6;
+      max-width: 85%; animation: fadeIn 0.2s ease;
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-    .msg.user {
-      background: var(--user-bg);
-      align-self: flex-end; flex-direction: row-reverse;
-    }
+    .msg.user { background: var(--user-bg); align-self: flex-end; flex-direction: row-reverse; }
     .msg.assistant { background: var(--agent-bg); align-self: flex-start; }
     .msg-avatar {
       width: 28px; height: 28px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 700; flex-shrink: 0;
-      font-family: var(--font-ui);
+      font-size: 11px; font-weight: 700; flex-shrink: 0; font-family: var(--font-ui);
     }
     .msg-body { flex: 1; min-width: 0; }
-    .msg-sender {
-      font-size: 11px; font-weight: 600; margin-bottom: 3px;
-      font-family: var(--font-ui);
-    }
-    .msg-content {
-      white-space: pre-wrap; word-break: break-word;
-      color: var(--text);
-    }
+    .msg-sender { font-size: 11px; font-weight: 600; margin-bottom: 3px; font-family: var(--font-ui); }
+    .msg-content { white-space: pre-wrap; word-break: break-word; color: var(--text); }
     .msg-content code {
-      background: rgba(255,255,255,0.06);
-      padding: 1px 5px; border-radius: 3px;
-      font-family: var(--font-mono);
+      background: rgba(255,255,255,0.06); padding: 1px 5px;
+      border-radius: 3px; font-family: var(--font-mono);
     }
-    .msg-time {
-      font-size: 10px; color: var(--muted);
-      margin-top: 3px;
+    .msg-time { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+    /* Tool log pill */
+    .tool-log {
+      display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+    }
+    .tool-pill {
+      font-size: 10px; padding: 2px 7px; border-radius: 20px;
+      background: rgba(255,255,255,0.05); color: var(--muted);
+      border: 1px solid var(--border); font-family: var(--font-mono);
     }
 
     /* Thinking indicator */
     .thinking-indicator {
-      display: flex; align-items: center; gap: 8px;
-      padding: 8px 12px;
-      animation: fadeIn 0.2s ease;
-      font-size: 12px; color: var(--muted);
+      display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+      animation: fadeIn 0.2s ease; font-size: 12px; color: var(--muted);
     }
     .thinking-dots span {
       display: inline-block; width: 5px; height: 5px;
-      border-radius: 50%; background: currentColor;
-      animation: bounce 1.2s infinite;
+      border-radius: 50%; background: currentColor; animation: bounce 1.2s infinite;
     }
     .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
     .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
@@ -276,24 +191,28 @@
       40% { transform: scale(1); opacity: 1; }
     }
 
+    /* Tool use indicator */
+    .tool-indicator {
+      display: flex; align-items: center; gap: 8px; padding: 5px 12px;
+      animation: fadeIn 0.15s ease; font-size: 11px;
+      color: var(--warn); opacity: 0.85;
+    }
+
     /* Input area */
     #inputArea {
-      padding: 12px 20px;
-      border-top: 1px solid var(--border);
-      background: var(--surface);
-      display: flex; gap: 10px; align-items: flex-end;
+      padding: 12px 20px; border-top: 1px solid var(--border);
+      background: var(--surface); display: flex; gap: 10px; align-items: flex-end;
     }
     #msgInput {
-      flex: 1; background: var(--panel);
-      border: 1px solid var(--border); border-radius: var(--radius);
-      color: var(--text); font-family: var(--font-mono); font-size: 13px;
+      flex: 1; background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-family: var(--font-mono); font-size: 13px;
       padding: 10px 14px; resize: none; outline: none;
       max-height: 120px; line-height: 1.5;
     }
     #msgInput:focus { border-color: var(--accent); }
     #sendBtn {
-      padding: 10px 20px;
-      background: var(--accent); color: #fff;
+      padding: 10px 20px; background: var(--accent); color: #fff;
       border: none; border-radius: var(--radius);
       font-family: var(--font-ui); font-weight: 600; font-size: 13px;
       cursor: pointer; transition: opacity 0.15s; flex-shrink: 0;
@@ -301,87 +220,117 @@
     #sendBtn:hover { opacity: 0.85; }
     #sendBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* ── Agent Panel (right side) ── */
+    /* ── Agent Panel ── */
     #agentPanel {
-      width: 280px; min-width: 280px;
-      background: var(--surface);
-      border-left: 1px solid var(--border);
-      display: flex; flex-direction: column;
-      overflow: hidden;
+      width: 290px; min-width: 290px; background: var(--surface);
+      border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden;
     }
+    .panel-tabs {
+      display: flex; border-bottom: 1px solid var(--border);
+    }
+    .panel-tab {
+      flex: 1; padding: 10px 0; text-align: center;
+      font-family: var(--font-ui); font-size: 12px; font-weight: 700;
+      color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .panel-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .panel-section { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+    .panel-section.active { display: flex; }
     .panel-header {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
     }
-    .panel-header h3 {
-      font-family: var(--font-ui); font-size: 13px; font-weight: 700;
-    }
-    .panel-sub {
-      font-size: 11px;
-      color: var(--muted);
-      padding: 8px 16px 0;
-    }
-    #agentList {
-      flex: 1; overflow-y: auto; padding: 8px;
-    }
+    .panel-header h3 { font-family: var(--font-ui); font-size: 13px; font-weight: 700; }
+    .panel-sub { font-size: 11px; color: var(--muted); padding: 8px 16px 0; }
+    #agentList { flex: 1; overflow-y: auto; padding: 8px; }
     .agent-card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 10px 12px; margin-bottom: 6px;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 10px 12px; margin-bottom: 6px;
     }
-    .agent-card-top {
-      display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
-    }
-    .agent-color-dot {
-      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-    }
-    .agent-card-name {
-      font-family: var(--font-ui); font-weight: 700; font-size: 13px; flex: 1;
-    }
-    .agent-card-model {
-      font-size: 10px; color: var(--muted); margin-bottom: 6px;
+    .agent-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .agent-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .agent-card-name { font-family: var(--font-ui); font-weight: 700; font-size: 13px; flex: 1; }
+    .agent-card-model { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+    .agent-tools-badge {
+      font-size: 10px; color: #00ff88; background: rgba(0,255,136,0.1);
+      border: 1px solid rgba(0,255,136,0.2); border-radius: 10px;
+      padding: 1px 7px; margin-bottom: 6px; display: inline-block;
     }
     .agent-card-prompt {
       font-size: 11px; color: var(--muted);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      margin-bottom: 8px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px;
     }
-    .agent-card-actions {
-      display: flex; gap: 6px; align-items: center;
-    }
+    .agent-card-actions { display: flex; gap: 6px; align-items: center; }
     .toggle-btn {
-      font-size: 11px; padding: 3px 10px;
-      border-radius: 4px; border: none; cursor: pointer;
-      font-family: var(--font-mono); font-weight: 600;
-      transition: opacity 0.15s;
+      font-size: 11px; padding: 3px 10px; border-radius: 4px; border: none;
+      cursor: pointer; font-family: var(--font-mono); font-weight: 600; transition: opacity 0.15s;
     }
     .toggle-btn.on  { background: rgba(0,255,136,0.15); color: #00ff88; }
-    .toggle-btn.off { background: rgba(255,71,87,0.15);  color: var(--error); }
-    .edit-btn {
-      font-size: 11px; color: var(--muted); cursor: pointer;
-      background: none; border: none; padding: 3px 6px;
-    }
+    .toggle-btn.off { background: rgba(255,71,87,0.15); color: var(--error); }
+    .edit-btn { font-size: 11px; color: var(--muted); cursor: pointer; background: none; border: none; padding: 3px 6px; }
     .edit-btn:hover { color: var(--text); }
+
+    /* ── Settings Panel ── */
+    #settingsSection { padding: 12px; overflow-y: auto; }
+    .settings-group { margin-bottom: 20px; }
+    .settings-group h4 {
+      font-family: var(--font-ui); font-size: 11px; font-weight: 700;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+    .settings-row { margin-bottom: 10px; }
+    .settings-row label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .settings-row input, .settings-row select {
+      width: 100%; padding: 8px 10px; background: var(--panel);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text); font-family: var(--font-mono); font-size: 12px; outline: none;
+    }
+    .settings-row input:focus, .settings-row select:focus { border-color: var(--accent); }
+    .settings-hint { font-size: 10px; color: var(--muted); margin-top: 3px; }
+    .workspace-status {
+      font-size: 11px; padding: 6px 10px; border-radius: 6px;
+      margin-top: 6px;
+    }
+    .workspace-status.set { background: rgba(0,255,136,0.1); color: #00ff88; border: 1px solid rgba(0,255,136,0.2); }
+    .workspace-status.unset { background: rgba(255,71,87,0.1); color: var(--error); border: 1px solid rgba(255,71,87,0.2); }
+
+    /* Models list */
+    #modelsList { overflow-y: auto; padding: 8px; }
+    .model-card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 8px 10px; margin-bottom: 6px;
+    }
+    .model-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+    .model-card-name { font-family: var(--font-ui); font-weight: 700; font-size: 12px; }
+    .model-card-ollama { font-size: 10px; color: var(--muted); font-family: var(--font-mono); }
+    .model-card-desc { font-size: 11px; color: var(--muted); }
+    .model-caps { display: flex; gap: 4px; margin-top: 4px; }
+    .cap-badge {
+      font-size: 9px; padding: 1px 6px; border-radius: 10px;
+      background: rgba(61,142,248,0.15); color: var(--accent);
+      border: 1px solid rgba(61,142,248,0.25);
+    }
+
+    /* File strip */
+    .file-strip {
+      border-bottom: 1px solid var(--border); padding: 6px 12px;
+      font-size: 11px; color: var(--muted);
+      white-space: nowrap; overflow-x: auto;
+    }
+    .file-link { color: var(--accent); text-decoration: none; margin-right: 10px; }
 
     /* ── Modal ── */
     .modal-overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.7);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 200; padding: 20px;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px;
     }
     .modal {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 28px; width: 100%; max-width: 440px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 28px; width: 100%; max-width: 460px;
+      max-height: 90vh; overflow-y: auto;
     }
-    .modal h3 {
-      font-family: var(--font-ui); font-size: 16px; font-weight: 700;
-      margin-bottom: 20px;
-    }
+    .modal h3 { font-family: var(--font-ui); font-size: 16px; font-weight: 700; margin-bottom: 20px; }
     .field { margin-bottom: 14px; }
     .field label {
       display: block; font-size: 11px; color: var(--muted);
@@ -389,96 +338,46 @@
       margin-bottom: 5px; font-family: var(--font-ui);
     }
     .field input, .field textarea, .field select {
-      width: 100%; padding: 9px 12px;
-      background: var(--panel); border: 1px solid var(--border);
-      border-radius: var(--radius); color: var(--text);
-      font-family: var(--font-mono); font-size: 13px;
-      outline: none;
+      width: 100%; padding: 9px 12px; background: var(--panel);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--text); font-family: var(--font-mono); font-size: 13px; outline: none;
     }
-    .field input:focus, .field textarea:focus, .field select:focus {
-      border-color: var(--accent);
-    }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
     .field textarea { resize: vertical; min-height: 90px; }
     .field select option { background: var(--panel); }
+    .field .hint { font-size: 10px; color: var(--muted); margin-top: 3px; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; }
+    .checkbox-row input[type=checkbox] { width: auto; cursor: pointer; }
     .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+    .color-picker-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
-    /* ── Mobile layout ── */
-    @media (max-width: 1200px), (pointer: coarse) {
-      #app {
-        display: block;
-        height: 100dvh;
-      }
+    /* ── Mobile ── */
+    @media (max-width: 1100px), (pointer: coarse) {
+      #app { display: block; height: 100dvh; }
       #sidebar, #main, #agentPanel {
-        display: none;
-        width: 100%;
-        min-width: 0;
-        height: calc(100dvh - 56px);
-        border: none;
+        display: none; width: 100%; min-width: 0;
+        height: calc(100dvh - 56px); border: none;
       }
       #app[data-mobile-tab="rooms"] #sidebar { display: flex; }
       #app[data-mobile-tab="chat"] #main { display: flex; }
       #app[data-mobile-tab="ai"] #agentPanel { display: flex; }
       #messages { padding: 12px; }
-      #chatHeader {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-      }
-      #chatHeader .presence {
-        max-width: 100%;
-        flex: 1;
-        white-space: normal;
-        overflow: visible;
-        text-overflow: clip;
-        text-align: left;
-      }
-      #chatMeta {
-        width: 100%;
-        flex-wrap: wrap;
-      }
+      #chatHeader { flex-direction: column; align-items: flex-start; gap: 8px; }
+      #chatHeader .presence { max-width: 100%; white-space: normal; overflow: visible; text-align: left; }
+      #chatMeta { width: 100%; flex-wrap: wrap; }
       #inputArea { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); }
-      #msgInput { font-size: 16px; } /* avoid mobile zoom on focus */
-      #sendBtn { padding: 10px 14px; }
+      #msgInput { font-size: 16px; }
       .mobile-tabbar { display: flex !important; }
     }
     .mobile-tabbar {
-      display: none;
-      position: fixed;
-      left: 0; right: 0; bottom: 0;
-      height: 56px;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      z-index: 300;
+      display: none; position: fixed; left: 0; right: 0; bottom: 0;
+      height: 56px; background: var(--surface); border-top: 1px solid var(--border); z-index: 300;
     }
     .mobile-tabbar button {
-      flex: 1;
-      border: none;
-      background: transparent;
-      color: var(--muted);
-      font-family: var(--font-ui);
-      font-size: 13px;
-      font-weight: 700;
+      flex: 1; border: none; background: transparent;
+      color: var(--muted); font-family: var(--font-ui); font-size: 13px; font-weight: 700;
     }
-    .mobile-tabbar button.active {
-      color: var(--accent);
-      background: rgba(61,142,248,0.1);
-    }
-    .file-strip {
-      border-bottom: 1px solid var(--border);
-      padding: 8px 12px;
-      font-size: 11px;
-      color: var(--muted);
-      white-space: nowrap;
-      overflow-x: auto;
-    }
-    .file-link {
-      color: var(--accent);
-      text-decoration: none;
-      margin-right: 10px;
-    }
-    .color-picker-row {
-      display: flex; gap: 8px; flex-wrap: wrap;
-    }
+    .mobile-tabbar button.active { color: var(--accent); background: rgba(61,142,248,0.1); }
   </style>
 </head>
 <body>
@@ -487,7 +386,7 @@
 <div id="nameGate">
   <div class="gate-box">
     <h1>Agent Hub</h1>
-    <p>Multi-agent AI · Shared rooms · Real-time</p>
+    <p>Local AI · Shared rooms · Real-time · No limits</p>
     <input id="nameInput" type="text" placeholder="Your name..." maxlength="24" />
     <div class="color-row" id="userColorPicker"></div>
     <button class="btn" onclick="enterHub()">Enter Hub</button>
@@ -497,7 +396,7 @@
 <!-- Main app -->
 <div id="app" style="display:none;">
 
-  <!-- Sidebar: rooms -->
+  <!-- Sidebar -->
   <div id="sidebar">
     <div class="sidebar-header">
       <h2>⬡ Agent Hub</h2>
@@ -520,7 +419,7 @@
     <div id="chatHeader">
       <div class="room-name" id="roomLabel">—</div>
       <div id="chatMeta">
-        <button class="btn secondary sm" onclick="downloadRoom()">Download</button>
+        <button class="btn secondary sm" onclick="downloadRoom()">Export</button>
         <div class="presence" id="onlineUsers">online: —</div>
         <div class="status" id="connStatus">connecting...</div>
       </div>
@@ -535,21 +434,67 @@
     </div>
   </div>
 
-  <!-- Agent panel -->
+  <!-- Right panel: Agents + Settings -->
   <div id="agentPanel">
-    <div class="panel-header">
-      <h3>Agents</h3>
-      <button class="btn sm secondary" onclick="showAgentModal(null)">+ New</button>
+    <div class="panel-tabs">
+      <div class="panel-tab active" id="tabAgents" onclick="setPanelTab('agents')">Agents</div>
+      <div class="panel-tab" id="tabModels" onclick="setPanelTab('models')">Models</div>
+      <div class="panel-tab" id="tabSettings" onclick="setPanelTab('settings')">Settings</div>
     </div>
-    <div class="panel-sub" id="agentRoomLabel">for room: —</div>
-    <div id="agentList"></div>
+
+    <!-- Agents -->
+    <div class="panel-section active" id="sectionAgents">
+      <div class="panel-header">
+        <h3 id="agentRoomLabel">Agents</h3>
+        <button class="btn sm secondary" onclick="showAgentModal(null)">+ New</button>
+      </div>
+      <div id="agentList"></div>
+    </div>
+
+    <!-- Models -->
+    <div class="panel-section" id="sectionModels">
+      <div class="panel-header">
+        <h3>Model Registry</h3>
+        <button class="btn sm secondary" onclick="showAddModelModal()">+ Add</button>
+      </div>
+      <div class="panel-sub" style="margin-bottom:6px;">Models available in Ollama on your PC</div>
+      <div id="modelsList"></div>
+    </div>
+
+    <!-- Settings -->
+    <div class="panel-section" id="sectionSettings">
+      <div class="panel-header"><h3>Settings</h3></div>
+      <div id="settingsSection">
+        <div class="settings-group">
+          <h4>🗂 Workspace Folder</h4>
+          <div class="settings-row">
+            <label>Path on your PC</label>
+            <input id="workspacePath" type="text" placeholder="e.g. C:\Users\You\AgentWorkspace" />
+            <div class="settings-hint">Agents can read/write files here. Use an absolute path.</div>
+          </div>
+          <div id="workspaceStatus" class="workspace-status unset">Not set — agents cannot use file tools</div>
+          <button class="btn sm" style="margin-top:8px;width:100%;" onclick="saveWorkspace()">Save Workspace</button>
+        </div>
+
+        <div class="settings-group">
+          <h4>🤖 Ollama</h4>
+          <div class="settings-row">
+            <label>Ollama URL</label>
+            <input id="ollamaUrl" type="text" placeholder="http://localhost:11434" />
+            <div class="settings-hint">Default: http://localhost:11434</div>
+          </div>
+          <button class="btn sm secondary" style="margin-top:4px;width:100%;" onclick="checkOllama()">Test Connection</button>
+          <div id="ollamaStatus" style="font-size:11px;margin-top:6px;color:var(--muted);"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <div class="mobile-tabbar" id="mobileTabbar">
-  <button id="tabRooms" onclick="setMobileTab('rooms')">Rooms</button>
-  <button id="tabChat" onclick="setMobileTab('chat')" class="active">Chat</button>
-  <button id="tabAi" onclick="setMobileTab('ai')">AI</button>
+  <button id="mTabRooms" onclick="setMobileTab('rooms')">Rooms</button>
+  <button id="mTabChat" onclick="setMobileTab('chat')" class="active">Chat</button>
+  <button id="mTabAi" onclick="setMobileTab('ai')">AI</button>
 </div>
 
 <script>
@@ -562,24 +507,10 @@ let thinkingAgents = new Set();
 let pollTimer = null;
 let presenceTimer = null;
 let files = [];
+let models = [];
 
 const USER_COLORS = ['#3d8ef8','#00ff88','#ff6b6b','#ffd93d','#c77dff','#ff9f43','#48dbfb','#ff6eb4'];
 const AGENT_COLORS = ['#00ff88','#3d8ef8','#ff6b6b','#ffd93d','#c77dff','#ff9f43','#48dbfb','#ff6eb4'];
-const GROQ_MODELS = [
-  // ── Llama (Meta) ──────────────────────────────
-  'llama-3.3-70b-versatile',                        // best all-rounder
-  'llama-3.1-8b-instant',                           // lightweight + fast
-  'meta-llama/llama-4-scout-17b-16e-instruct',      // Llama 4 – fast MoE
-  'meta-llama/llama-4-maverick-17b-128e-instruct',  // Llama 4 – smarter
-  // ── Qwen (Alibaba) ────────────────────────────
-  'qwen/qwen3-32b',                                 // reasoning + chat
-  // ── Kimi (Moonshot AI) ────────────────────────
-  'moonshotai/kimi-k2-instruct',                    // great for coding/agents
-  // ── DeepSeek ──────────────────────────────────
-  'deepseek-r1-distill-llama-70b',                  // chain-of-thought
-  // ── Other ─────────────────────────────────────
-  'gemma2-9b-it',
-];
 
 // ── Name gate ─────────────────────────────────────────────────────────────
 function buildColorPicker(containerId, colors, defaultColor, onSelect) {
@@ -598,10 +529,7 @@ function buildColorPicker(containerId, colors, defaultColor, onSelect) {
 }
 
 buildColorPicker('userColorPicker', USER_COLORS, userColor, c => { userColor = c; });
-
-document.getElementById('nameInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') enterHub();
-});
+document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') enterHub(); });
 
 function enterHub() {
   const val = document.getElementById('nameInput').value.trim();
@@ -617,27 +545,17 @@ function enterHub() {
   document.getElementById('userDot').style.background = userColor;
   loadVersion();
   loadRooms();
-  loadAgents();
+  loadModels();
+  loadConfig();
 }
 
 async function loadVersion() {
   try {
     const data = await fetchJson('/api/version');
     document.getElementById('buildInfo').textContent = `build: ${data.version}`;
-  } catch (_) {
-    document.getElementById('buildInfo').textContent = 'build: unknown';
-  }
+  } catch (_) { document.getElementById('buildInfo').textContent = 'build: ?'; }
 }
 
-function setMobileTab(tab) {
-  const app = document.getElementById('app');
-  app.setAttribute('data-mobile-tab', tab);
-  document.getElementById('tabRooms').classList.toggle('active', tab === 'rooms');
-  document.getElementById('tabChat').classList.toggle('active', tab === 'chat');
-  document.getElementById('tabAi').classList.toggle('active', tab === 'ai');
-}
-
-// Pre-fill from localStorage
 window.addEventListener('DOMContentLoaded', () => {
   const savedName = localStorage.getItem('agentHubName');
   const savedColor = localStorage.getItem('agentHubColor');
@@ -645,8 +563,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (savedColor) {
     userColor = savedColor;
     document.querySelectorAll('#userColorPicker .color-swatch').forEach(s => {
-      s.classList.toggle('selected', s.style.background === savedColor ||
-        savedColor === rgbToHex(s.style.background));
+      s.classList.toggle('selected', s.style.background === savedColor || savedColor === rgbToHex(s.style.background));
     });
   }
 });
@@ -678,6 +595,165 @@ function showSystemNotice(text, color = 'var(--error)') {
   if (shouldKeepBottom) scrollBottom();
 }
 
+// ── Panel tabs ─────────────────────────────────────────────────────────────
+function setPanelTab(tab) {
+  document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  document.getElementById('section' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+}
+
+// ── Mobile tabs ────────────────────────────────────────────────────────────
+function setMobileTab(tab) {
+  document.getElementById('app').setAttribute('data-mobile-tab', tab);
+  document.getElementById('mTabRooms').classList.toggle('active', tab === 'rooms');
+  document.getElementById('mTabChat').classList.toggle('active', tab === 'chat');
+  document.getElementById('mTabAi').classList.toggle('active', tab === 'ai');
+}
+
+// ── Config / Settings ──────────────────────────────────────────────────────
+async function loadConfig() {
+  try {
+    const cfg = await fetchJson('/api/config');
+    if (cfg.workspace_path) {
+      document.getElementById('workspacePath').value = cfg.workspace_path;
+      setWorkspaceStatus(cfg.workspace_path);
+    }
+    if (cfg.ollama_url) {
+      document.getElementById('ollamaUrl').value = cfg.ollama_url;
+    }
+  } catch (_) {}
+}
+
+function setWorkspaceStatus(path) {
+  const el = document.getElementById('workspaceStatus');
+  if (path) {
+    el.className = 'workspace-status set';
+    el.textContent = `✓ ${path}`;
+  } else {
+    el.className = 'workspace-status unset';
+    el.textContent = 'Not set — agents cannot use file tools';
+  }
+}
+
+async function saveWorkspace() {
+  const path = document.getElementById('workspacePath').value.trim();
+  await fetch('/api/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: 'workspace_path', value: path }),
+  });
+  setWorkspaceStatus(path);
+  showSystemNotice(`✓ Workspace set to: ${path}`, '#00ff88');
+}
+
+async function checkOllama() {
+  const url = document.getElementById('ollamaUrl').value.trim() || 'http://localhost:11434';
+  const el = document.getElementById('ollamaStatus');
+  el.textContent = 'Testing...';
+  try {
+    const res = await fetch(`${url}/api/tags`);
+    const data = await res.json();
+    const modelNames = (data.models || []).map(m => m.name).join(', ');
+    el.style.color = '#00ff88';
+    el.textContent = `✓ Connected. Models: ${modelNames || 'none pulled yet'}`;
+    await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'ollama_url', value: url }),
+    });
+  } catch (err) {
+    el.style.color = 'var(--error)';
+    el.textContent = `✗ Could not connect: ${err.message}`;
+  }
+}
+
+// ── Models ─────────────────────────────────────────────────────────────────
+async function loadModels() {
+  try {
+    models = await fetchJson('/api/models');
+    renderModels();
+  } catch (err) { console.error('loadModels:', err); }
+}
+
+function renderModels() {
+  const list = document.getElementById('modelsList');
+  list.innerHTML = '';
+  if (!models.length) {
+    list.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:12px;">No models yet.</div>';
+    return;
+  }
+  models.forEach(m => {
+    const caps = (m.capabilities || 'chat').split(',');
+    const card = document.createElement('div');
+    card.className = 'model-card';
+    card.innerHTML = `
+      <div class="model-card-top">
+        <div class="model-card-name">${escHtml(m.display_name || m.name)}</div>
+        <button class="edit-btn" style="color:var(--error)" onclick="deleteModel('${m.id}')">✕</button>
+      </div>
+      <div class="model-card-ollama">${escHtml(m.name)}</div>
+      <div class="model-card-desc">${escHtml(m.description || '')}</div>
+      <div class="model-caps">${caps.map(c => `<span class="cap-badge">${c}</span>`).join('')}</div>`;
+    list.appendChild(card);
+  });
+}
+
+async function deleteModel(id) {
+  if (!confirm('Remove this model from the registry?')) return;
+  await fetch(`/api/models/${id}`, { method: 'DELETE' });
+  await loadModels();
+}
+
+function showAddModelModal() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'addModelModal';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>Add Model</h3>
+      <div class="field">
+        <label>Ollama model name</label>
+        <input id="am_name" type="text" placeholder="e.g. llama3.2, mistral, codellama" />
+        <div class="hint">Must match exactly what you pulled with <code>ollama pull</code></div>
+      </div>
+      <div class="field">
+        <label>Display name</label>
+        <input id="am_display" type="text" placeholder="e.g. Llama 3.2" />
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <input id="am_desc" type="text" placeholder="What is this model good at?" />
+      </div>
+      <div class="field">
+        <label>Capabilities (comma-separated)</label>
+        <input id="am_caps" type="text" value="chat,tools" placeholder="chat,tools,code" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn secondary sm" onclick="document.getElementById('addModelModal').remove()">Cancel</button>
+        <button class="btn sm" onclick="saveModel()">Add Model</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.getElementById('am_name').focus();
+}
+
+async function saveModel() {
+  const name = document.getElementById('am_name').value.trim();
+  const display_name = document.getElementById('am_display').value.trim() || name;
+  const description = document.getElementById('am_desc').value.trim();
+  const capabilities = document.getElementById('am_caps').value.trim() || 'chat';
+  if (!name) { alert('Model name required'); return; }
+  await fetchJson('/api/models', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, display_name, description, capabilities }),
+  });
+  document.getElementById('addModelModal')?.remove();
+  await loadModels();
+}
+
 // ── Rooms ─────────────────────────────────────────────────────────────────
 async function loadRooms() {
   try {
@@ -689,21 +765,14 @@ async function loadRooms() {
       el.className = 'room-item' + (r.id === currentRoomId ? ' active' : '');
       el.innerHTML = `
         <div class="room-main"><div class="dot"></div>${escHtml(r.name)}</div>
-        ${r.id === 'main' ? '' : `<span class="room-delete" title="Delete room">✕</span>`}
-      `;
+        ${r.id === 'main' ? '' : `<span class="room-delete" title="Delete room">✕</span>`}`;
       el.onclick = () => joinRoom(r.id, r.name);
       const del = el.querySelector('.room-delete');
-      if (del) {
-        del.onclick = (evt) => {
-          evt.stopPropagation();
-          deleteRoom(r.id, r.name);
-        };
-      }
+      if (del) del.onclick = evt => { evt.stopPropagation(); deleteRoom(r.id, r.name); };
       list.appendChild(el);
     });
     if (!currentRoomId && rooms.length > 0) joinRoom(rooms[0].id, rooms[0].name);
   } catch (err) {
-    console.error('loadRooms error:', err);
     document.getElementById('connStatus').className = 'status err';
     document.getElementById('connStatus').textContent = 'api error';
     showSystemNotice(`⚠ Could not load rooms: ${err.message}`);
@@ -714,11 +783,11 @@ function joinRoom(id, name) {
   currentRoomId = id;
   setMobileTab('chat');
   document.getElementById('roomLabel').textContent = '# ' + name;
-  document.getElementById('agentRoomLabel').textContent = `for room: # ${name}`;
+  document.getElementById('agentRoomLabel').textContent = `# ${name}`;
   document.getElementById('messages').innerHTML = '';
   thinkingAgents.clear();
   document.querySelectorAll('.room-item').forEach(el => {
-    el.classList.toggle('active', el.textContent.trim() === name);
+    el.classList.toggle('active', el.querySelector('.room-main')?.textContent?.trim() === name);
   });
   loadMessages(id);
   connectSSE(id);
@@ -726,9 +795,7 @@ function joinRoom(id, name) {
   loadFiles();
   loadPresence(id);
   if (pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(() => {
-    if (currentRoomId) loadMessages(currentRoomId, { replace: false });
-  }, 5000);
+  pollTimer = setInterval(() => { if (currentRoomId) loadMessages(currentRoomId, { replace: false }); }, 5000);
   if (presenceTimer) clearInterval(presenceTimer);
   presenceTimer = setInterval(() => loadPresence(currentRoomId), 5000);
 }
@@ -741,7 +808,6 @@ async function loadMessages(roomId, { replace = true } = {}) {
     msgs.forEach(m => renderMessage(m));
     if (replace || shouldKeepBottom) scrollBottom();
   } catch (err) {
-    console.error('loadMessages error:', err);
     showSystemNotice(`⚠ Could not load messages: ${err.message}`);
   }
 }
@@ -750,8 +816,7 @@ function showNewRoomModal() {
   const name = prompt('Room name:');
   if (!name?.trim()) return;
   fetch('/api/rooms', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: name.trim() }),
   }).then(() => loadRooms());
 }
@@ -773,37 +838,25 @@ async function loadFiles() {
   try {
     files = await fetchJson(`/api/rooms/${currentRoomId}/files`);
     renderFiles();
-  } catch (err) {
-    console.error('loadFiles error:', err);
-  }
+  } catch (_) {}
 }
 
 function renderFiles() {
   const el = document.getElementById('fileStrip');
-  if (!files.length) {
-    el.textContent = 'files: none (tap Attach below)';
-    return;
-  }
+  if (!files.length) { el.textContent = 'files: none (tap Attach to upload)'; return; }
   el.innerHTML = `files: ${files.map(f => `<a class="file-link" href="/api/files/${f.id}" target="_blank">${escHtml(f.name)}</a>`).join('')}`;
 }
 
 function updatePresence(users = []) {
   const counts = new Map();
-  users.forEach((u) => {
-    const name = u.name || 'Anonymous';
-    counts.set(name, (counts.get(name) || 0) + 1);
-  });
-  const labels = Array.from(counts.entries()).map(([name, count]) => (count > 1 ? `${name} x${count}` : name));
-  document.getElementById('onlineUsers').textContent =
-    labels.length ? `online: ${labels.join(', ')}` : 'online: —';
+  users.forEach(u => { const n = u.name || 'Anonymous'; counts.set(n, (counts.get(n) || 0) + 1); });
+  const labels = Array.from(counts.entries()).map(([n, c]) => c > 1 ? `${n} x${c}` : n);
+  document.getElementById('onlineUsers').textContent = labels.length ? `online: ${labels.join(', ')}` : 'online: —';
 }
 
 async function loadPresence(roomId = currentRoomId) {
   if (!roomId) return;
-  try {
-    const data = await fetchJson(`/api/rooms/${roomId}/presence`);
-    updatePresence(data.users || []);
-  } catch (_) {}
+  try { const data = await fetchJson(`/api/rooms/${roomId}/presence`); updatePresence(data.users || []); } catch (_) {}
 }
 
 async function uploadFile(e) {
@@ -814,22 +867,13 @@ async function uploadFile(e) {
     try {
       const contentBase64 = String(reader.result).split(',')[1];
       await fetchJson(`/api/rooms/${currentRoomId}/files`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: file.name,
-          mimeType: file.type || 'application/octet-stream',
-          contentBase64,
-          uploadedBy: userName,
-        }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: file.name, mimeType: file.type || 'application/octet-stream', contentBase64, uploadedBy: userName }),
       });
       await loadFiles();
       showSystemNotice(`📎 Uploaded: ${file.name}`, '#00ff88');
-    } catch (err) {
-      showSystemNotice(`⚠ Upload failed: ${err.message}`);
-    } finally {
-      e.target.value = '';
-    }
+    } catch (err) { showSystemNotice(`⚠ Upload failed: ${err.message}`); }
+    finally { e.target.value = ''; }
   };
   reader.readAsDataURL(file);
 }
@@ -851,10 +895,9 @@ function connectSSE(roomId) {
   eventSource.addEventListener('message', e => {
     const shouldKeepBottom = isNearBottom();
     const msg = JSON.parse(e.data);
-    // Remove thinking indicator for this agent if present
     if (msg.agent_id) {
-      const ti = document.getElementById('thinking-' + msg.agent_id);
-      if (ti) ti.remove();
+      document.getElementById('thinking-' + msg.agent_id)?.remove();
+      document.querySelectorAll(`.tool-indicator[data-agent="${msg.agent_id}"]`).forEach(el => el.remove());
       thinkingAgents.delete(msg.agent_id);
     }
     renderMessage(msg);
@@ -871,13 +914,22 @@ function connectSSE(roomId) {
     el.className = 'thinking-indicator';
     el.style.color = color;
     el.innerHTML = `
-      <div class="msg-avatar" style="background:${color}22;color:${color};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-family:var(--font-ui);font-weight:700;">
-        ${agentName[0]}
-      </div>
+      <div class="msg-avatar" style="background:${color}22;color:${color};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-family:var(--font-ui);font-weight:700;">${agentName[0]}</div>
       <span style="font-family:var(--font-ui);font-weight:600;">${escHtml(agentName)}</span>
-      <div class="thinking-dots" style="color:${color}">
-        <span></span><span></span><span></span>
-      </div>`;
+      <div class="thinking-dots" style="color:${color}"><span></span><span></span><span></span></div>`;
+    document.getElementById('messages').appendChild(el);
+    if (shouldKeepBottom) scrollBottom();
+  });
+
+  eventSource.addEventListener('tool_use', e => {
+    const shouldKeepBottom = isNearBottom();
+    const { agentId, agentName, color, label } = JSON.parse(e.data);
+    // Remove old tool indicator for this agent
+    document.querySelectorAll(`.tool-indicator[data-agent="${agentId}"]`).forEach(el => el.remove());
+    const el = document.createElement('div');
+    el.className = 'tool-indicator';
+    el.dataset.agent = agentId;
+    el.innerHTML = `<span style="color:${color};font-family:var(--font-ui);font-weight:600;font-size:11px;">${escHtml(agentName)}</span><span>${escHtml(label)}</span>`;
     document.getElementById('messages').appendChild(el);
     if (shouldKeepBottom) scrollBottom();
   });
@@ -895,8 +947,7 @@ function connectSSE(roomId) {
   });
 
   eventSource.addEventListener('presence', e => {
-    const users = JSON.parse(e.data)?.users || [];
-    updatePresence(users);
+    updatePresence(JSON.parse(e.data)?.users || []);
   });
 
   eventSource.onerror = () => {
@@ -915,16 +966,23 @@ function renderMessage(msg) {
   const isUser = msg.role === 'user';
   const color = msg.color || (isUser ? '#3d8ef8' : '#00ff88');
   const senderName = isUser ? (msg.user_name || 'User') : (msg.agent_name || 'Agent');
-  const initial = senderName[0].toUpperCase();
-
   const time = new Date((msg.created_at || Date.now()/1000) * 1000)
     .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+  let toolHtml = '';
+  if (msg.tool_log) {
+    const tools = Array.isArray(msg.tool_log) ? msg.tool_log : JSON.parse(msg.tool_log || '[]');
+    if (tools.length) {
+      toolHtml = `<div class="tool-log">${tools.map(t => `<span class="tool-pill">${escHtml(t)}</span>`).join('')}</div>`;
+    }
+  }
+
   el.innerHTML = `
-    <div class="msg-avatar" style="background:${color}22;color:${color};">${initial}</div>
+    <div class="msg-avatar" style="background:${color}22;color:${color};">${senderName[0].toUpperCase()}</div>
     <div class="msg-body">
       <div class="msg-sender" style="color:${color};">${escHtml(senderName)}</div>
       <div class="msg-content">${formatContent(msg.content)}</div>
+      ${toolHtml}
       <div class="msg-time">${time}</div>
     </div>`;
 
@@ -932,7 +990,6 @@ function renderMessage(msg) {
 }
 
 function formatContent(text) {
-  // Basic code block and inline code formatting
   return escHtml(text)
     .replace(/```[\s\S]*?```/g, m => `<code>${m.slice(3,-3).trim()}</code>`)
     .replace(/`([^`]+)`/g, '<code>$1</code>');
@@ -954,31 +1011,23 @@ function isNearBottom() {
   return (el.scrollHeight - el.scrollTop - el.clientHeight) < 120;
 }
 
-// ── Send message ──────────────────────────────────────────────────────────
+// ── Send ──────────────────────────────────────────────────────────────────
 async function sendMessage() {
   const input = document.getElementById('msgInput');
   const content = input.value.trim();
   if (!content || !currentRoomId) return;
-
   input.value = '';
   input.style.height = 'auto';
   document.getElementById('sendBtn').disabled = true;
-
   try {
     await fetch(`/api/rooms/${currentRoomId}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content, userName, userColor }),
     });
-  } catch (err) {
-    console.error('Send error:', err);
-  } finally {
-    document.getElementById('sendBtn').disabled = false;
-    input.focus();
-  }
+  } catch (err) { console.error('Send error:', err); }
+  finally { document.getElementById('sendBtn').disabled = false; input.focus(); }
 }
 
-// Auto-resize textarea
 document.getElementById('msgInput').addEventListener('input', function() {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 120) + 'px';
@@ -991,38 +1040,35 @@ document.getElementById('msgInput').addEventListener('keydown', e => {
 let agents = [];
 
 async function loadAgents() {
+  if (!currentRoomId) return;
   try {
-    if (!currentRoomId) return;
     agents = await fetchJson(`/api/agents?roomId=${encodeURIComponent(currentRoomId)}`);
     renderAgents();
-  } catch (err) {
-    console.error('loadAgents error:', err);
-    showSystemNotice(`⚠ Could not load agents: ${err.message}`);
-  }
+  } catch (err) { showSystemNotice(`⚠ Could not load agents: ${err.message}`); }
 }
 
 function renderAgents() {
   const list = document.getElementById('agentList');
   list.innerHTML = '';
-  if (agents.length === 0) {
+  if (!agents.length) {
     list.innerHTML = '<div style="padding:16px;color:var(--muted);font-size:12px;">No agents yet. Add one!</div>';
     return;
   }
   agents.forEach(a => {
+    const isOn = Number(a.active) === 1;
+    const hasTools = Number(a.tools_enabled) === 1;
     const card = document.createElement('div');
     card.className = 'agent-card';
-    const isOn = Number(a.active) === 1;
     card.innerHTML = `
       <div class="agent-card-top">
         <div class="agent-color-dot" style="background:${a.color}"></div>
         <div class="agent-card-name">${escHtml(a.name)}</div>
       </div>
-      <div class="agent-card-model">${a.model}</div>
+      <div class="agent-card-model">${escHtml(a.model)}</div>
+      ${hasTools ? '<div class="agent-tools-badge">🔧 tools enabled</div>' : ''}
       <div class="agent-card-prompt">${escHtml(a.system_prompt)}</div>
       <div class="agent-card-actions">
-        <button class="toggle-btn ${isOn ? 'on' : 'off'}" onclick="toggleAgent('${a.id}', ${isOn})">
-          ${isOn ? 'ON' : 'OFF'}
-        </button>
+        <button class="toggle-btn ${isOn ? 'on' : 'off'}" onclick="toggleAgent('${a.id}', ${isOn})">${isOn ? 'ON' : 'OFF'}</button>
         <button class="edit-btn" onclick="showAgentModal('${a.id}')">Edit</button>
         <button class="edit-btn" style="color:var(--error)" onclick="deleteAgent('${a.id}')">✕</button>
       </div>`;
@@ -1034,8 +1080,7 @@ async function toggleAgent(id, currentlyOn) {
   const agent = agents.find(a => a.id === id);
   if (!agent) return;
   await fetch(`/api/agents/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...agent, active: currentlyOn ? 0 : 1, roomId: currentRoomId }),
   });
   await loadAgents();
@@ -1054,20 +1099,17 @@ function showAgentModal(agentId) {
   const agent = agentId ? agents.find(a => a.id === agentId) : null;
   selectedAgentColor = agent?.color || AGENT_COLORS[0];
 
+  const modelOptions = models.length
+    ? models.map(m => `<option value="${escHtml(m.name)}" ${agent?.model === m.name ? 'selected' : ''}>${escHtml(m.display_name || m.name)}</option>`).join('')
+    : `<option value="llama3.2">llama3.2</option>`;
+
+  const colorSwatches = AGENT_COLORS.map(c =>
+    `<div class="color-swatch ${c === selectedAgentColor ? 'selected' : ''}" style="background:${c}" onclick="selectAgentColor('${c}', this)"></div>`
+  ).join('');
+
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.id = 'agentModal';
-
-  const modelOptions = GROQ_MODELS.map(m =>
-    `<option value="${m}" ${agent?.model === m ? 'selected' : ''}>${m}</option>`
-  ).join('');
-
-  const colorSwatches = AGENT_COLORS.map(c => `
-    <div class="color-swatch ${c === selectedAgentColor ? 'selected' : ''}"
-         style="background:${c}"
-         onclick="selectAgentColor('${c}', this)"></div>
-  `).join('');
-
   overlay.innerHTML = `
     <div class="modal">
       <h3>${agent ? 'Edit Agent' : 'New Agent'}</h3>
@@ -1087,6 +1129,13 @@ function showAgentModal(agentId) {
         <label>System Prompt</label>
         <textarea id="m_prompt" placeholder="Describe the agent's role and personality...">${escHtml(agent?.system_prompt || '')}</textarea>
       </div>
+      <div class="field">
+        <div class="checkbox-row">
+          <input type="checkbox" id="m_tools" ${Number(agent?.tools_enabled ?? 1) === 1 ? 'checked' : ''} />
+          <label for="m_tools" style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--text);">Enable file tools (read, write, run commands)</label>
+        </div>
+        <div class="hint">Requires workspace folder to be set in Settings</div>
+      </div>
       <div class="modal-actions">
         <button class="btn secondary sm" onclick="closeModal()">Cancel</button>
         <button class="btn sm" onclick="saveAgent('${agentId || ''}')">Save</button>
@@ -1100,8 +1149,7 @@ function showAgentModal(agentId) {
 
 function selectAgentColor(color, el) {
   selectedAgentColor = color;
-  document.querySelectorAll('#agentColorPicker .color-swatch')
-    .forEach(s => s.classList.remove('selected'));
+  document.querySelectorAll('#agentColorPicker .color-swatch').forEach(s => s.classList.remove('selected'));
   el.classList.add('selected');
 }
 
@@ -1113,25 +1161,20 @@ async function saveAgent(agentId) {
   const name = document.getElementById('m_name').value.trim();
   const system_prompt = document.getElementById('m_prompt').value.trim();
   const model = document.getElementById('m_model').value;
+  const tools_enabled = document.getElementById('m_tools').checked ? 1 : 0;
+  if (!name || !system_prompt) { alert('Name and system prompt are required.'); return; }
 
-  if (!name || !system_prompt) {
-    alert('Name and system prompt are required.');
-    return;
-  }
-
-  const payload = { name, system_prompt, model, color: selectedAgentColor, active: 1 };
+  const payload = { name, system_prompt, model, color: selectedAgentColor, active: 1, tools_enabled };
 
   if (agentId) {
     const existing = agents.find(a => a.id === agentId);
     await fetch(`/api/agents/${agentId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...existing, ...payload, roomId: currentRoomId }),
     });
   } else {
     await fetch('/api/agents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...payload, roomId: currentRoomId }),
     });
   }
