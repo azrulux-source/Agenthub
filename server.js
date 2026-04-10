@@ -306,16 +306,33 @@ app.get('/api/config', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/config', async (req, res) => {
+app.post('/api/agents', async (req, res) => {
   try {
-    const { key, value } = req.body;
-    if (!key) return res.status(400).json({ error: 'key required' });
+    const { name, system_prompt, model = 'llama3.2', color = '#00ff88', tools_enabled = 1, roomId } = req.body;
+    
+    // Safety: If roomId is missing, use 'main' instead of crashing
+    const targetRoom = roomId || 'main'; 
+
+    if (!name?.trim() || !system_prompt?.trim()) {
+      return res.status(400).json({ error: 'Name and system_prompt required' });
+    }
+    
+    const id = randomUUID();
     await db.execute({
-      sql: 'INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)',
-      args: [key, value],
+      sql: 'INSERT INTO agents (id, name, system_prompt, model, color, tools_enabled) VALUES (?, ?, ?, ?, ?, ?)',
+      args: [id, name.trim(), system_prompt.trim(), model, color, tools_enabled ? 1 : 0],
     });
-    res.json({ ok: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+
+    await db.execute({
+      sql: 'INSERT OR IGNORE INTO room_agents (room_id, agent_id, active) VALUES (?, ?, 1)',
+      args: [targetRoom, id],
+    });
+
+    res.json({ id, name: name.trim(), system_prompt: system_prompt.trim(), model, color, tools_enabled, active: 1 });
+  } catch (err) { 
+    console.error("DETAILED SERVER ERROR:", err); // This prints the REAL error to your terminal
+    res.status(500).json({ error: err.message }); 
+  }
 });
 
 // ── Models ────────────────────────────────────────────────────────────────────
