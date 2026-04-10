@@ -566,9 +566,18 @@ let files = [];
 const USER_COLORS = ['#3d8ef8','#00ff88','#ff6b6b','#ffd93d','#c77dff','#ff9f43','#48dbfb','#ff6eb4'];
 const AGENT_COLORS = ['#00ff88','#3d8ef8','#ff6b6b','#ffd93d','#c77dff','#ff9f43','#48dbfb','#ff6eb4'];
 const GROQ_MODELS = [
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
-  'mixtral-8x7b-32768',
+  // ── Llama (Meta) ──────────────────────────────
+  'llama-3.3-70b-versatile',                        // best all-rounder
+  'llama-3.1-8b-instant',                           // lightweight + fast
+  'meta-llama/llama-4-scout-17b-16e-instruct',      // Llama 4 – fast MoE
+  'meta-llama/llama-4-maverick-17b-128e-instruct',  // Llama 4 – smarter
+  // ── Qwen (Alibaba) ────────────────────────────
+  'qwen/qwen3-32b',                                 // reasoning + chat
+  // ── Kimi (Moonshot AI) ────────────────────────
+  'moonshotai/kimi-k2-instruct',                    // great for coding/agents
+  // ── DeepSeek ──────────────────────────────────
+  'deepseek-r1-distill-llama-70b',                  // chain-of-thought
+  // ── Other ─────────────────────────────────────
   'gemma2-9b-it',
 ];
 
