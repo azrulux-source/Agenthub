@@ -124,11 +124,11 @@ async function initDB() {
   const { rows: modelRows } = await db.execute('SELECT COUNT(*) as c FROM models');
   if (Number(modelRows[0].c) === 0) {
     const defaultModels = [
-      { name: 'llama3.2',      display: 'Llama 3.2',         desc: 'Fast, great for general chat and tool use',       caps: 'chat,tools' },
-      { name: 'llama3.1:8b',   display: 'Llama 3.1 8B',      desc: 'Smarter, better tool use and reasoning',          caps: 'chat,tools' },
+      { name: 'claude-opus-4-6:latest',      display: 'Llama 3.2',         desc: 'Fast, great for general chat and tool use',       caps: 'chat,tools' },
+      { name: 'llama3.1:latest',   display: 'Llama 3.1 8B',      desc: 'Smarter, better tool use and reasoning',          caps: 'chat,tools' },
       { name: 'mistral',       display: 'Mistral 7B',         desc: 'Excellent all-rounder, strong at instructions',   caps: 'chat,tools' },
       { name: 'codellama',     display: 'Code Llama',         desc: 'Specialized for code generation and review',      caps: 'chat,code'  },
-      { name: 'deepseek-coder',display: 'DeepSeek Coder',     desc: 'Top-tier coding model, great at complex code',    caps: 'chat,code'  },
+      { name: 'deepseek-coder:latest',display: 'DeepSeek Coder',     desc: 'Top-tier coding model, great at complex code',    caps: 'chat,code'  },
       { name: 'phi3',          display: 'Phi-3 Mini',         desc: 'Tiny but surprisingly capable, very fast',        caps: 'chat'       },
       { name: 'gemma2:9b',     display: 'Gemma 2 9B',         desc: 'Great at following instructions and analysis',    caps: 'chat,tools' },
     ];
