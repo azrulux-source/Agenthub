@@ -4,82 +4,163 @@
   <meta charset="UTF-8" /><title>Agent Hub</title>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Syne:wght@600;800&display=swap" rel="stylesheet" />
   <style>
-    /* ... (Keep the CSS from the previous full index.html I gave you) ... */
-    #loginGate { position: fixed; inset: 0; background: #090b10; z-index: 2000; display: flex; align-items: center; justify-content: center; }
-    .login-box { background: #0f1219; padding: 40px; border-radius: 12px; border: 1px solid #1e2535; text-align: center; }
+    :root { --bg: #090b10; --surface: #0f1219; --panel: #141820; --border: #1e2535; --text: #c8d0e0; --accent: #3d8ef8; --radius: 8px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'JetBrains Mono', monospace; display: flex; height: 100vh; overflow: hidden; }
+    #loginGate { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .gate-box { background: var(--surface); padding: 40px; border-radius: 12px; border: 1px solid var(--border); width: 320px; text-align: center; }
+    #sidebar { width: 240px; border-right: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; }
+    #main { flex: 1; display: flex; flex-direction: column; }
+    #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+    .msg { padding: 12px; border-radius: 8px; max-width: 85%; }
+    .msg.user { align-self: flex-end; background: #1e2535; border: 1px solid var(--border); }
+    .msg.assistant { align-self: flex-start; background: #0d1a14; border: 1px solid #1b3328; }
+    .msg-sender { font-size: 10px; font-weight: bold; color: var(--accent); margin-bottom: 4px; }
+    #inputArea { padding: 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: var(--surface); }
+    #msgInput { flex: 1; background: var(--panel); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; outline: none; resize: none; }
+    #agentPanel { width: 260px; border-left: 1px solid var(--border); background: var(--surface); padding: 20px; }
+    .btn { background: var(--accent); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-family: 'Syne'; font-weight: 600; }
+    .room-item { padding: 12px; cursor: pointer; border-radius: 6px; margin: 5px; font-size: 13px; }
+    .room-item.active { background: var(--accent); color: white; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; }
+    .modal { background: var(--surface); padding: 20px; border-radius: 12px; width: 400px; border: 1px solid var(--border); }
   </style>
 </head>
 <body>
 
 <div id="loginGate">
-  <div class="login-box">
-    <h1 style="font-family: 'Syne'; margin-bottom: 20px;">Enter Hub</h1>
-    <input id="userNameInput" type="text" placeholder="Your Name..." style="padding: 10px; border-radius: 6px; border: 1px solid #1e2535; background: #141820; color: white; width: 100%; margin-bottom: 20px;">
-    <button class="btn" onclick="login()">Join Room</button>
+  <div class="gate-box">
+    <h2 style="font-family:'Syne'; margin-bottom:20px">Join Hub</h2>
+    <input id="uName" type="text" placeholder="Name..." style="width:100%; padding:10px; margin-bottom:20px; background:#141820; border:1px solid #1e2535; color:white">
+    <button class="btn" style="width:100%" onclick="login()">Enter</button>
   </div>
+</div>
+
+<div id="sidebar">
+  <div style="padding:20px; border-bottom:1px solid var(--border)"><h3 style="font-family:'Syne'">Rooms</h3></div>
+  <div id="roomList" style="flex:1; overflow-y:auto"></div>
+  <button class="btn" style="margin:10px" onclick="createRoom()">+ New Room</button>
+</div>
+
+<div id="main">
+  <div id="messages"></div>
+  <div id="inputArea">
+    <textarea id="msgInput" rows="1" placeholder="Type..."></textarea>
+    <button class="btn" onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<div id="agentPanel">
+  <div style="display:flex; justify-content:space-between; margin-bottom:20px">
+    <h3>Agents</h3>
+    <button onclick="showAgentModal()" style="font-size:10px" class="btn">+ Add</button>
+  </div>
+  <div id="agentList"></div>
 </div>
 
 <script>
 let currentUser = '';
 let currentRoomId = 'main';
-let lastMessageCount = 0;
+let models = [];
+let msgCount = 0;
+
+async function fetchJson(u, o) { const r = await fetch(u, o); return r.json(); }
 
 function login() {
-  const name = document.getElementById('userNameInput').value.trim();
-  if (!name) return alert("Enter a name");
-  currentUser = name;
-  document.getElementById('loginGate').style.display = 'none';
+  currentUser = document.getElementById('uName').value.trim();
+  if (!currentUser) return;
+  document.getElementById('loginGate').remove();
   init();
+}
+
+async function init() {
+  await loadRooms();
+  models = await fetchJson('/api/models');
+  loadAgents();
+  loadMessages();
+  setInterval(sync, 2000);
+}
+
+async function sync() { await loadMessages(); await loadRooms(); await loadAgents(); }
+
+async function loadRooms() {
+  const rooms = await fetchJson('/api/rooms');
+  document.getElementById('roomList').innerHTML = rooms.map(r => `
+    <div class="room-item ${r.id === currentRoomId ? 'active' : ''}" onclick="selectRoom('${r.id}')"># ${r.name}</div>
+  `).join('');
+}
+
+async function selectRoom(id) {
+  currentRoomId = id;
+  msgCount = 0;
+  document.getElementById('messages').innerHTML = '';
+  await sync();
+}
+
+async function createRoom() {
+  const name = prompt("Name:"); if(!name) return;
+  await fetchJson('/api/rooms', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name})});
+  loadRooms();
+}
+
+async function loadAgents() {
+  const agents = await fetchJson(`/api/agents?roomId=${currentRoomId}`);
+  document.getElementById('agentList').innerHTML = agents.map(a => `<div style="padding:10px; border:1px solid #333; margin-bottom:5px; border-radius:8px"><strong>${a.name}</strong><br><small>${a.model}</small></div>`).join('');
 }
 
 async function loadMessages() {
   const msgs = await fetchJson(`/api/messages?roomId=${currentRoomId}`);
-  
-  // Only re-render if there are new messages
-  if (msgs.length !== lastMessageCount) {
+  if (msgs.length !== msgCount) {
     const container = document.getElementById('messages');
     container.innerHTML = msgs.map(m => `
       <div class="msg ${m.role}">
         <div class="msg-sender">${m.sender}</div>
-        <div class="msg-content">${m.content}</div>
+        <div>${m.content}</div>
       </div>
     `).join('');
     container.scrollTop = container.scrollHeight;
-    lastMessageCount = msgs.length;
+    msgCount = msgs.length;
   }
 }
 
 async function sendMessage() {
-  const input = document.getElementById('msgInput');
-  const content = input.value.trim();
-  if (!content) return;
-
+  const content = document.getElementById('msgInput').value;
   const agents = await fetchJson(`/api/agents?roomId=${currentRoomId}`);
-  if (!agents.length) return alert("Add an agent first!");
-
-  input.value = '';
+  if (!agents.length || !content) return;
+  document.getElementById('msgInput').value = '';
   await fetchJson('/api/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      content, 
-      userName: currentUser, 
-      roomId: currentRoomId, 
-      agentId: agents[0].id 
-    })
+    body: JSON.stringify({ content, userName: currentUser, roomId: currentRoomId, agentId: agents[0].id })
   });
-  loadMessages(); // Refresh immediately after sending
+  loadMessages();
 }
 
-// SYNC LOOP: Check for new stuff every 2 seconds
-setInterval(() => {
-  if (currentUser) {
-    loadMessages();
-    loadRooms();
-  }
-}, 2000);
+function showAgentModal() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'modal';
+  const opts = models.map(m => `<option value="${m.name}">${m.display_name}</option>`).join('');
+  overlay.innerHTML = `
+    <div class="modal">
+      <input id="aname" placeholder="Name" style="width:100%; margin-bottom:10px">
+      <textarea id="aprompt" placeholder="Prompt" style="width:100%; margin-bottom:10px"></textarea>
+      <select id="amodel" style="width:100%; margin-bottom:10px">${opts}</select>
+      <button class="btn" onclick="saveAgent()">Save</button>
+      <button onclick="document.getElementById('modal').remove()">Cancel</button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
 
-// ... (keep the loadRooms, loadAgents, and showAgentModal functions)
+async function saveAgent() {
+  await fetchJson('/api/agents', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: document.getElementById('aname').value, system_prompt: document.getElementById('aprompt').value, model: document.getElementById('amodel').value, roomId: currentRoomId })
+  });
+  document.getElementById('modal').remove();
+  loadAgents();
+}
 </script>
 </body>
 </html>
