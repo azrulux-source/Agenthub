@@ -538,6 +538,31 @@
     .msg-bubble p:last-child { margin-bottom: 0; }
     .msg-bubble ul, .msg-bubble ol { padding-left: 18px; margin: 6px 0; }
     .msg-bubble li { margin-bottom: 3px; }
+
+    /* Agent-to-agent messages */
+    .msg.agent-chat .msg-bubble {
+      background: #0e1520;
+      border-color: #1a2840;
+      border-left: 2px solid #2d4a7a;
+    }
+    .agent-chat-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: #4a6fa0;
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Semantic search badge */
+    .relevance-badge {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--green);
+      background: var(--green-dim);
+      padding: 1px 5px;
+      border-radius: 4px;
+      margin-left: 4px;
+    }
   </style>
 </head>
 <body>
@@ -802,6 +827,7 @@ function renderMessage(m) {
   const initials = m.sender ? m.sender[0].toUpperCase() : '?';
   const time = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const content = renderMarkdown(m.content || '');
+  const isAgentChat = m.is_agent_chat === 1 || m.is_agent_chat === true;
 
   let toolHtml = '';
   if (m.tool_activity && m.tool_activity.length > 0) {
@@ -810,10 +836,15 @@ function renderMessage(m) {
     ).join('')}</div>`;
   }
 
+  const agentChatLabel = isAgentChat
+    ? `<div class="agent-chat-label">↩ replying to agents</div>`
+    : '';
+
   return `
-    <div class="msg ${m.role}">
+    <div class="msg ${m.role} ${isAgentChat ? 'agent-chat' : ''}">
       <div class="msg-avatar">${initials}</div>
       <div class="msg-body">
+        ${agentChatLabel}
         <div class="msg-meta">
           <span class="msg-sender">${escHtml(m.sender)}</span>
           <span class="msg-time">${time}</span>
