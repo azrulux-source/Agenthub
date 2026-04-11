@@ -5,8 +5,7 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
-// ── Tool Definitions (Ollama/OpenAI format) ────────────────────────────────
-
+// ── Tool Definitions ──────────────────────────────────────────────────────────
 export const TOOL_DEFINITIONS = [
   {
     type: 'function',
@@ -45,7 +44,7 @@ export const TOOL_DEFINITIONS = [
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Relative path to directory. Use "." for the workspace root.' }
+          path: { type: 'string', description: 'Relative path to directory. Use "." for workspace root.' }
         },
         required: ['path']
       }
@@ -69,7 +68,7 @@ export const TOOL_DEFINITIONS = [
     type: 'function',
     function: {
       name: 'run_command',
-      description: 'Run a terminal/shell command inside the workspace directory. Use carefully.',
+      description: 'Run a terminal/shell command inside the workspace directory.',
       parameters: {
         type: 'object',
         properties: {
@@ -92,11 +91,24 @@ export const TOOL_DEFINITIONS = [
         required: ['url']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_topics',
+      description: 'Search across all past conversation topics in this room for relevant information. Use this to recall previous discussions.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Keywords or phrase to search for in past conversations' }
+        },
+        required: ['query']
+      }
+    }
   }
 ];
 
-// ── Safety: block path traversal ──────────────────────────────────────────
-
+// ── Safety ────────────────────────────────────────────────────────────────────
 function safePath(workspacePath, inputPath) {
   const resolved = resolve(join(workspacePath, inputPath));
   if (!resolved.startsWith(resolve(workspacePath))) {
@@ -105,13 +117,11 @@ function safePath(workspacePath, inputPath) {
   return resolved;
 }
 
-// ── Tool Executor ─────────────────────────────────────────────────────────
-
+// ── Tool Executor ─────────────────────────────────────────────────────────────
 export async function executeTool(toolName, args, workspacePath) {
-  if (!workspacePath) throw new Error('No workspace path configured. Set it in Settings.');
+  if (!workspacePath) throw new Error('No workspace path configured.');
 
   switch (toolName) {
-
     case 'read_file': {
       const fullPath = safePath(workspacePath, args.path);
       const content = await readFile(fullPath, 'utf-8');
@@ -128,11 +138,11 @@ export async function executeTool(toolName, args, workspacePath) {
     case 'list_directory': {
       const fullPath = safePath(workspacePath, args.path);
       const entries = await readdir(fullPath, { withFileTypes: true });
-      const items = entries.map(e => ({
-        name: e.name,
-        type: e.isDirectory() ? 'dir' : 'file'
-      }));
-      return { success: true, path: args.path, items };
+      return {
+        success: true,
+        path: args.path,
+        items: entries.map(e => ({ name: e.name, type: e.isDirectory() ? 'dir' : 'file' }))
+      };
     }
 
     case 'search_files': {
@@ -194,21 +204,25 @@ export async function executeTool(toolName, args, workspacePath) {
       return { success: true, url: args.url, status: res.status, content: clean };
     }
 
+    case 'search_topics':
+      // Handled in server.js directly — should not reach here
+      throw new Error('search_topics must be handled by server');
+
     default:
       throw new Error(`Unknown tool: "${toolName}"`);
   }
 }
 
-// ── Tool label for UI display ──────────────────────────────────────────────
-
+// ── Tool label for UI ─────────────────────────────────────────────────────────
 export function toolLabel(toolName, args) {
   switch (toolName) {
     case 'read_file':      return `📄 Reading: ${args.path}`;
     case 'write_file':     return `✏️ Writing: ${args.path}`;
     case 'list_directory': return `📁 Listing: ${args.path}`;
-    case 'search_files':   return `🔍 Searching: "${args.query}"`;
+    case 'search_files':   return `🔍 Searching files: "${args.query}"`;
     case 'run_command':    return `⚡ Running: ${args.command}`;
     case 'fetch_url':      return `🌐 Fetching: ${args.url}`;
+    case 'search_topics':  return `💬 Searching topics: "${args.query}"`;
     default:               return `🔧 ${toolName}`;
   }
 }
